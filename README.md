@@ -10,11 +10,16 @@ GitHub Actionsの無料枠でスケジュール実行するため、追加費用
 
 完全自動では投稿せず、**必ず人間の承認を経てから公開する**構成になっている。
 
-1. 毎日0:05(JST)、`plan-schedule.yml` がその日の投稿時刻を3回分、9:00〜22:00の範囲でランダムに決める(`data/schedule.json`)。1日の投稿上限もここで決まる(デフォルト3件/日)
-2. 毎時5分、`prepare-post.yml` が「予定時刻を過ぎていて未消化の枠」がないか確認する
+※ 楽天のランキングAPIは、**GitHub Actionsのサーバー(海外データセンター)からのアクセスを
+`CLIENT_IP_NOT_ALLOWED`エラーでブロックする**ことが判明した(Cloudflare Workers経由でも同様にブロックされた)。
+そのため「投稿案を作る」部分(楽天APIを呼ぶ部分)だけは、**ご自身のPCから定期的に実行**する構成になっている。
+それ以外(スケジュール決定・承認後の投稿・トークン更新)は今まで通りクラウドで完全自動。
+
+1. 毎日0:05(JST)、`plan-schedule.yml`(クラウド/GitHub Actions)がその日の投稿時刻を3回分、9:00〜22:00の範囲でランダムに決める(`data/schedule.json`)。1日の投稿上限もここで決まる(デフォルト3件/日)
+2. **ご自身のPCで**タスクスケジューラにより定期的に(例: 1時間おき)`scripts/run_local_prepare.ps1` が実行され、「予定時刻を過ぎていて未消化の枠」がないか確認する
 3. 該当する枠があれば、楽天商品ランキングAPI(無料・公式)から上位商品を取得し、ランキング形式の投稿文(**景品表示法対応の`【PR】`表記・`#PR`ハッシュタグ付き**)を組み立てて、**GitHub Issueとしてレビュー起票**する(まだ投稿はしない)
-4. 起票されたIssueを見て、内容が問題なければ `approved` ラベルを付ける。問題があればIssueをCloseする(却下)
-5. `approved` ラベルが付いた瞬間、`publish-approved.yml` が自動で起動し、Threads API (Graph API, OAuth2) で実際に投稿する
+4. 起票されたIssueを見て、内容が問題なければ `approved` ラベルを付ける。問題があればIssueをCloseする(却下)。この操作はスマホのGitHubアプリからでも可能
+5. `approved` ラベルが付いた瞬間、`publish-approved.yml`(クラウド/GitHub Actions)が自動で起動し、Threads API (Graph API, OAuth2) で実際に投稿する。**この部分はPCの状態に関係なく動く**
 6. 投稿済み商品は `data/posted_items.json` に記録し、14日間は再投稿しない
 7. 投稿履歴は `data/post_log.json` にも記録され、`index.html`(GitHub Pagesダッシュボード)から確認できる
 8. Threadsのアクセストークン(60日間有効)は、別のワークフローで毎週自動更新される
@@ -72,14 +77,17 @@ python scripts/get_initial_token.py "<控えた認可コード>"
    - Access Keyも同じアプリ管理画面に表示されている
 3. 既にお持ちの楽天アフィリエイトIDを控える(アフィリエイトIDは開発者につき1つ。全アプリで共通)
 
-### 5. GitHub Personal Access Token(トークン自動更新用)の作成
+### 5. GitHub Personal Access Tokenの作成
 
-トークン自動更新ワークフローが、GitHub Secretsを書き換えるために使う。
+トークン自動更新ワークフロー、および**ローカルPCから投稿案を作る処理**の両方で使う、共通のトークンを作成する。
 
 1. https://github.com/settings/personal-access-tokens/new にアクセス
 2. Repository access で該当リポジトリ(`rakuten-sns-bot`)のみを選択
-3. Permissions → **Secrets** を **Read and write** に設定
-4. 発行されたトークンを控える(これが `GH_PAT`)
+3. Permissions で以下をすべて **Read and write** に設定
+   - **Secrets**(トークン自動更新ワークフロー用)
+   - **Issues**(投稿案のIssue作成用)
+   - **Contents**(スケジュールファイルのpush用)
+4. 発行されたトークンを控える(これを `GH_PAT` と、ローカルPCの `GITHUB_TOKEN` の両方に使う)
 
 ### 6. GitHubリポジトリの作成(未作成の場合)
 
@@ -130,24 +138,57 @@ GitHub Web UIから作る場合は、リポジトリの Issues タブ → Labels
 | `THREADS_ACCESS_TOKEN` | 手順3で取得した長期アクセストークン |
 | `GH_PAT` | 手順5で発行したPersonal Access Token |
 
-### 10. 動作確認
+### 10. ローカルPCの設定(投稿案を作る処理)
+
+**1回だけ**、PowerShellで以下を実行し、ユーザー環境変数を設定する(値は各自のものに置き換える)。
+`setx` はターミナルを再起動しないと反映されないので、設定後は一度PowerShellを閉じて開き直すこと。
+
+```powershell
+setx RAKUTEN_APP_ID "85544306-e87e-40aa-acbb-6053c88f15a8"
+setx RAKUTEN_ACCESS_KEY "楽天のAccess Key"
+setx RAKUTEN_AFFILIATE_ID "559327ac.a79ca32c.559327ad.c0573395"
+setx GITHUB_TOKEN "手順5で発行したPersonal Access Token"
+setx GITHUB_REPOSITORY "takumi3334/rakuten-sns-bot"
+```
+
+続けて、タスクスケジューラに登録する。
+
+1. Windowsの検索から「タスクスケジューラ」を開く
+2. 右側の **「タスクの作成」**(「基本タスクの作成」ではなく)をクリック
+3. **全般**タブ: 名前を `rakuten-prepare-post` などにする。「最上位の特権で実行する」にチェック
+4. **トリガー**タブ → 新規 → 「タスクの開始」を **「1 回」** にし、開始時刻を適当な近い時刻に設定 → 詳細設定の **「繰り返し間隔」を1時間**、**「継続時間」を無期限** にチェック
+5. **操作**タブ → 新規 →
+   - プログラム/スクリプト: `powershell.exe`
+   - 引数の追加: `-ExecutionPolicy Bypass -File "C:\Users\takum\Desktop\開発アプリ\開発アプリ\rakuten-sns-bot\scripts\run_local_prepare.ps1"`
+6. **条件**タブ: 「AC電源接続時のみ」などお好みで調整(ノートPCの場合)
+7. OKで保存
+
+これで、PCが起動しているあいだ、1時間おきに投稿案の作成をチェックするようになる。
+
+### 11. 動作確認
 
 1. GitHubリポジトリの Actions タブ → **"Plan Daily Posting Schedule"** → "Run workflow" で手動実行し、`data/schedule.json` が作られるか確認する
-2. Actions タブ → **"Prepare Post for Review"** → "Run workflow" で手動実行する
-   - 予定時刻をまだ過ぎていない場合は何も起きない(スケジュールが先の時刻なら、`data/schedule.json` の時刻を手で過去の時刻に書き換えてから再実行すると確認しやすい)
+2. PowerShellで手動実行して確認する
+
+   ```powershell
+   cd "C:\Users\takum\Desktop\開発アプリ\開発アプリ\rakuten-sns-bot"
+   powershell -ExecutionPolicy Bypass -File scripts\run_local_prepare.ps1
+   ```
+
+   - 予定時刻をまだ過ぎていない場合は何も起きない(GitHub上で`data/schedule.json`の時刻を手で過去の時刻に書き換えてpushしてから再実行すると確認しやすい)
 3. Issues タブに **「投稿レビュー: ...」** というIssueが作られているか確認する
 4. 内容を確認し、問題なければそのIssueに **`approved` ラベル**を付ける
 5. 自動で **"Publish Approved Post"** ワークフローが起動し、Threadsに投稿される。Issueには自動でコメントが付き、Closeされる
 6. ダッシュボード(`https://<あなたのユーザー名>.github.io/rakuten-sns-bot/`)を開いて投稿履歴が表示されるか確認する
 
-以降は `plan-schedule.yml`(毎日0:05 JST)と `prepare-post.yml`(毎時5分)が自動実行され、
-`approved` ラベルを付けるだけで公開される運用になる。
+以降は `plan-schedule.yml`(クラウド、毎日0:05 JST)と、ローカルPCのタスクスケジューラ(1時間おき)が
+投稿案を作り、`approved` ラベルを付けるだけで公開される運用になる。
 また `.github/workflows/refresh-token.yml` が毎週月曜に自動でアクセストークンを更新する。
 
 ## カスタマイズ
 
 - **1日の投稿上限・時間帯**: `scripts/plan_schedule.py` の `DAILY_POST_CAP`(デフォルト3件)、`WINDOW_START`/`WINDOW_END`(デフォルト9:00〜22:00)を変更
-- **投稿案のチェック頻度**: `.github/workflows/prepare-post.yml` の `cron` を変更(デフォルトは毎時)
+- **投稿案のチェック頻度**: タスクスケジューラのトリガー設定(繰り返し間隔)を変更
 - **ジャンルを絞る**: `scripts/ranking_lib.py` の `GENRE_IDS` に、[楽天ジャンル検索API](https://webservice.rakuten.co.jp/api/ichibagenresearch/)で調べたジャンルIDを追加(例: 家電、美容など)
 - **投稿文のトーン**: `scripts/ranking_lib.py` の `INTRO_PHRASES` のリストに好きな煽り文句を追加してバリエーションを増やす
 - **クールダウン期間**: `scripts/ranking_lib.py` の `COOLDOWN_DAYS`(デフォルト14日)を変更
@@ -155,22 +196,18 @@ GitHub Web UIから作る場合は、リポジトリの Issues タブ → Labels
 
 ## ローカルでのテスト方法
 
-`prepare_post.py` と `publish_approved.py` は GitHub CLI(`gh`)経由でIssueを操作するため、
-ローカルで試す場合は事前に `gh auth login` で認証しておくこと。
+`prepare_post.py` は `GITHUB_TOKEN`/`GITHUB_REPOSITORY` の環境変数があれば動く(`gh` CLIのインストールは不要)。
+`publish_approved.py` は GitHub Actions上でのみ実行する想定(`gh` CLIとGITHUB_TOKENが自動で使える)。
 
-```bash
+```powershell
 pip install -r requirements.txt
-cp .env.example .env  # 値を埋める
-export $(cat .env | xargs)   # PowerShellの場合は各変数を $env:NAME="value" で設定
+# setxで設定済みの環境変数(RAKUTEN_*, GITHUB_TOKEN, GITHUB_REPOSITORY)を使う
 
 # その日の投稿スケジュールを生成(Threads/楽天の認証情報は不要)
-python scripts/plan_schedule.py
+python scripts\plan_schedule.py
 
-# 予定時刻を過ぎていればレビューIssueを作成(楽天の認証情報が必要)
-python scripts/prepare_post.py
-
-# 特定のIssue番号を承認後に公開する場合(Threadsの認証情報が必要)
-ISSUE_NUMBER=1 python scripts/publish_approved.py   # PowerShellなら $env:ISSUE_NUMBER=1
+# 予定時刻を過ぎていればレビューIssueを作成
+python scripts\prepare_post.py
 ```
 
 ## 注意点
@@ -179,6 +216,7 @@ ISSUE_NUMBER=1 python scripts/publish_approved.py   # PowerShellなら $env:ISSU
 - Threadsの投稿レート制限は24時間で250件までなので、1日数件の運用なら十分余裕がある
 - 楽天アフィリエイトの成果発生には、実際にクリックされた商品が24時間以内に購入される必要がある(楽天の仕様)
 - 生成される投稿文はテンプレートベース。反応を見ながら `INTRO_PHRASES` や構成を継続的に改善していくことが、フォロワー・売上を伸ばす一番の近道
-- `GH_PAT` はSecrets書き換え権限を持つ強めのトークン。リポジトリ範囲を必ず該当リポジトリのみに絞ること
+- `GH_PAT`(ローカルの`GITHUB_TOKEN`と共通)はSecrets/Issues/Contentsの書き換え権限を持つ強めのトークン。リポジトリ範囲を必ず該当リポジトリのみに絞ること
+- 「投稿案を作る」処理はPCが起動している時間帯だけ動く。長期間PCを起動しないと、その間は新しい投稿案が作られない(承認済みの投稿の公開自体はクラウドで動き続ける)
 - レビューIssueを放置して却下も承認もしないと、その回の投稿は行われないまま残り続ける。定期的にIssues一覧を確認すること
 - `【PR】`表記・`#PR`ハッシュタグは景品表示法(ステルスマーケティング規制)対応の一般的なプラクティスとして組み込んでいるが、最終的な法令適合性の判断は必要に応じて専門家に確認すること

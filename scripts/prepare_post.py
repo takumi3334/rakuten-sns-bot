@@ -1,10 +1,10 @@
 import json
 import os
-import subprocess
 import sys
-import tempfile
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
+import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
 from ranking_lib import load_state, prune_state, pick_items, build_post_text
@@ -12,6 +12,14 @@ from ranking_lib import load_state, prune_state, pick_items, build_post_text
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 SCHEDULE_PATH = os.path.join(DATA_DIR, "schedule.json")
 JST = ZoneInfo("Asia/Tokyo")
+
+GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+GITHUB_REPOSITORY = os.environ["GITHUB_REPOSITORY"]  # 例: "takumi3334/rakuten-sns-bot"
+GITHUB_API_BASE = "https://api.github.com"
+GITHUB_HEADERS = {
+    "Authorization": f"Bearer {GITHUB_TOKEN}",
+    "Accept": "application/vnd.github+json",
+}
 
 
 def load_schedule():
@@ -49,10 +57,15 @@ def ensure_labels():
         ("approved", "22C55E", "承認済み。このラベルを付けると自動で公開される"),
     ]
     for name, color, description in labels:
-        subprocess.run(
-            ["gh", "label", "create", name, "--color", color, "--description", description, "--force"],
-            check=False,
+        resp = requests.post(
+            f"{GITHUB_API_BASE}/repos/{GITHUB_REPOSITORY}/labels",
+            headers=GITHUB_HEADERS,
+            json={"name": name, "color": color, "description": description},
+            timeout=15,
         )
+        # 201: 作成成功 / 422: 既に存在する(問題なし)
+        if resp.status_code not in (201, 422):
+            resp.raise_for_status()
 
 
 def create_review_issue(text, items):
@@ -80,21 +93,13 @@ def create_review_issue(text, items):
 
     title = f"投稿レビュー: {datetime.now(JST).strftime('%Y-%m-%d %H:%M')}"
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".md", delete=False, encoding="utf-8"
-    ) as f:
-        f.write(body)
-        body_path = f.name
-
-    subprocess.run(
-        [
-            "gh", "issue", "create",
-            "--title", title,
-            "--body-file", body_path,
-            "--label", "pending-review",
-        ],
-        check=True,
+    resp = requests.post(
+        f"{GITHUB_API_BASE}/repos/{GITHUB_REPOSITORY}/issues",
+        headers=GITHUB_HEADERS,
+        json={"title": title, "body": body, "labels": ["pending-review"]},
+        timeout=15,
     )
+    resp.raise_for_status()
 
 
 def main():
