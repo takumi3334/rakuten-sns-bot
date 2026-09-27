@@ -42,7 +42,22 @@ def due_slot(schedule):
     return None
 
 
+def ensure_labels():
+    """pending-review・approvedラベルが無ければ作成する(GitHub Web UIでの手動作成を不要にする)"""
+    labels = [
+        ("pending-review", "FFA500", "レビュー待ちの投稿案"),
+        ("approved", "22C55E", "承認済み。このラベルを付けると自動で公開される"),
+    ]
+    for name, color, description in labels:
+        subprocess.run(
+            ["gh", "label", "create", name, "--color", color, "--description", description, "--force"],
+            check=False,
+        )
+
+
 def create_review_issue(text, items):
+    ensure_labels()
+
     payload = {
         "text": text,
         "items": [
