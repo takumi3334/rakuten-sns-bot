@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天ランキングbot ダッシュボード</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card-bg: #ffffff;
+    --text: #1a1d23;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #bf0000;
+    --accent-soft: #fdecec;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1115;
+      --card-bg: #1a1d23;
+      --text: #e8e9ec;
+      --text-muted: #9aa0aa;
+      --border: #2a2e37;
+      --accent: #ff5c5c;
+      --accent-soft: #2a1414;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1115;
+    --card-bg: #1a1d23;
+    --text: #e8e9ec;
+    --text-muted: #9aa0aa;
+    --border: #2a2e37;
+    --accent: #ff5c5c;
+    --accent-soft: #2a1414;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    padding: 16px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 12px 0 24px;
+    flex-wrap: wrap;
+  }
+  h1 { font-size: 1.3rem; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .updated { font-size: 0.8rem; color: var(--text-muted); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
+  .stat-value { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--text-muted);
+  }
+
+  .post-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .post-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .post-meta a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .post-meta a:hover { text-decoration: underline; }
+
+  .item-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-top: 1px dashed var(--border);
+    font-size: 0.88rem;
+  }
+  .item-row:first-of-type { border-top: none; }
+  .item-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .item-price {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 48px 16px;
+    font-size: 0.9rem;
+  }
+
+  .error {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🛒 楽天ランキングbot</h1>
+    <span class="updated" id="updated">読み込み中…</span>
+  </header>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">総投稿数</div>
+      <div class="stat-value" id="stat-total">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">直近24時間</div>
+      <div class="stat-value" id="stat-today">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">紹介した商品数</div>
+      <div class="stat-value" id="stat-items">–</div>
+    </div>
+  </div>
+
+  <div class="section-title">最近の投稿</div>
+  <div id="post-list"></div>
+</div>
+
+<script>
+async function loadDashboard() {
+  const updatedEl = document.getElementById("updated");
+  const listEl = document.getElementById("post-list");
+
+  try {
+    const res = await fetch("data/post_log.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const log = await res.json();
+
+    updatedEl.textContent = "最終確認: " + new Date().toLocaleString("ja-JP");
+
+    const total = log.length;
+    const totalItems = log.reduce((sum, p) => sum + (p.items ? p.items.length : 0), 0);
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const today = log.filter(p => new Date(p.postedAt).getTime() > dayAgo).length;
+
+    document.getElementById("stat-total").textContent = total;
+    document.getElementById("stat-today").textContent = today;
+    document.getElementById("stat-items").textContent = totalItems;
+
+    if (total === 0) {
+      listEl.innerHTML = '<div class="empty">まだ投稿履歴がありません。最初の自動投稿が実行されるとここに表示されます。</div>';
+      return;
+    }
+
+    const recent = log.slice().reverse().slice(0, 30);
+    listEl.innerHTML = recent.map(renderPost).join("");
+  } catch (err) {
+    updatedEl.textContent = "";
+    listEl.innerHTML = '<div class="error">データの読み込みに失敗しました: ' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+function renderPost(post) {
+  const date = new Date(post.postedAt);
+  const dateStr = date.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const linkHtml = post.permalink
+    ? '<a href="' + escapeHtml(post.permalink) + '" target="_blank" rel="noopener">投稿を見る →</a>'
+    : "";
+  const itemsHtml = (post.items || []).map(item =>
+    '<div class="item-row">' +
+      '<span class="item-name">' + escapeHtml(item.name) + '</span>' +
+      '<span class="item-price">' + item.price.toLocaleString() + '円</span>' +
+    '</div>'
+  ).join("");
+
+  return (
+    '<div class="post-card">' +
+      '<div class="post-meta"><span>' + dateStr + '</span>' + linkHtml + '</div>' +
+      itemsHtml +
+    '</div>'
+  );
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

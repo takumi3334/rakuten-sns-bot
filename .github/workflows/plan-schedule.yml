@@ -1,0 +1,33 @@
+name: Plan Daily Posting Schedule
+
+on:
+  schedule:
+    - cron: "5 15 * * *"  # 00:05 JST (毎日、その日の投稿時刻をランダムに決める)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate today's posting times
+        run: python scripts/plan_schedule.py
+
+      - name: Commit schedule
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/schedule.json
+          git diff --staged --quiet || git commit -m "Plan today's posting schedule"
+          git push

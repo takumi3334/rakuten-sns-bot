@@ -1,0 +1,25 @@
+name: Refresh Threads Access Token
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"  # 毎週月曜 12:00 JST (60日有効期限に対して十分な余裕)
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh token and update secret
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python scripts/refresh_token.py
