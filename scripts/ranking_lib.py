@@ -5,10 +5,6 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
-RAKUTEN_APP_ID = os.environ["RAKUTEN_APP_ID"]
-RAKUTEN_ACCESS_KEY = os.environ["RAKUTEN_ACCESS_KEY"]
-RAKUTEN_AFFILIATE_ID = os.environ.get("RAKUTEN_AFFILIATE_ID", "")
-
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 STATE_PATH = os.path.join(DATA_DIR, "posted_items.json")
 LOG_PATH = os.path.join(DATA_DIR, "post_log.json")
@@ -64,15 +60,16 @@ def prune_state(state):
 
 
 def fetch_ranking(genre_id):
+    rakuten_affiliate_id = os.environ.get("RAKUTEN_AFFILIATE_ID", "")
     params = {
         "format": "json",
         "genreId": genre_id,
         "period": "realtime",
-        "applicationId": RAKUTEN_APP_ID,
-        "accessKey": RAKUTEN_ACCESS_KEY,
+        "applicationId": os.environ["RAKUTEN_APP_ID"],
+        "accessKey": os.environ["RAKUTEN_ACCESS_KEY"],
     }
-    if RAKUTEN_AFFILIATE_ID:
-        params["affiliateId"] = RAKUTEN_AFFILIATE_ID
+    if rakuten_affiliate_id:
+        params["affiliateId"] = rakuten_affiliate_id
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                       "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
