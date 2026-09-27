@@ -79,7 +79,10 @@ def fetch_ranking(genre_id):
     }
     resp = requests.get(RANKING_ENDPOINT, params=params, headers=headers, timeout=15)
     resp.raise_for_status()
-    return [entry["Item"] for entry in resp.json().get("Items", [])]
+    items = [entry["Item"] for entry in resp.json().get("Items", [])]
+    for item in items:
+        item["itemPrice"] = int(item["itemPrice"])
+    return items
 
 
 def pick_items(state):
