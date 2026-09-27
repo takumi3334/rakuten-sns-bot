@@ -16,7 +16,7 @@ Set-Location $RepoDir
 
 git pull --quiet
 
-python scripts\prepare_post.py
+py scripts\prepare_post.py
 
 git add data\schedule.json
 $staged = git diff --staged --name-only
