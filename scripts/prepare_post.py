@@ -50,27 +50,7 @@ def due_slot(schedule):
     return None
 
 
-def ensure_labels():
-    """pending-review・approvedラベルが無ければ作成する(GitHub Web UIでの手動作成を不要にする)"""
-    labels = [
-        ("pending-review", "FFA500", "レビュー待ちの投稿案"),
-        ("approved", "22C55E", "承認済み。このラベルを付けると自動で公開される"),
-    ]
-    for name, color, description in labels:
-        resp = requests.post(
-            f"{GITHUB_API_BASE}/repos/{GITHUB_REPOSITORY}/labels",
-            headers=GITHUB_HEADERS,
-            json={"name": name, "color": color, "description": description},
-            timeout=15,
-        )
-        # 201: 作成成功 / 422: 既に存在する(問題なし)
-        if resp.status_code not in (201, 422):
-            resp.raise_for_status()
-
-
 def create_review_issue(text, items):
-    ensure_labels()
-
     payload = {
         "text": text,
         "items": [
@@ -86,7 +66,7 @@ def create_review_issue(text, items):
     body = (
         "## 投稿案\n\n"
         "```\n" + text + "\n```\n\n"
-        "承認する場合は、このIssueに `approved` ラベルを付けてください(自動で公開されます)。\n"
+        "承認する場合は、このIssueに **`approve`** とコメントしてください(自動で公開されます)。\n"
         "却下する場合は、このIssueをCloseしてください。\n\n"
         f"<!-- POST_DATA: {json.dumps(payload, ensure_ascii=False)} -->"
     )
@@ -96,7 +76,7 @@ def create_review_issue(text, items):
     resp = requests.post(
         f"{GITHUB_API_BASE}/repos/{GITHUB_REPOSITORY}/issues",
         headers=GITHUB_HEADERS,
-        json={"title": title, "body": body, "labels": ["pending-review"]},
+        json={"title": title, "body": body},
         timeout=15,
     )
     resp.raise_for_status()

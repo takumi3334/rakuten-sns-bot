@@ -18,8 +18,8 @@ GitHub Actionsの無料枠でスケジュール実行するため、追加費用
 1. 毎日0:05(JST)、`plan-schedule.yml`(クラウド/GitHub Actions)がその日の投稿時刻を3回分、9:00〜22:00の範囲でランダムに決める(`data/schedule.json`)。1日の投稿上限もここで決まる(デフォルト3件/日)
 2. **ご自身のPCで**タスクスケジューラにより定期的に(例: 1時間おき)`scripts/run_local_prepare.ps1` が実行され、「予定時刻を過ぎていて未消化の枠」がないか確認する
 3. 該当する枠があれば、楽天商品ランキングAPI(無料・公式)から上位商品を取得し、ランキング形式の投稿文(**景品表示法対応の`【PR】`表記・`#PR`ハッシュタグ付き**)を組み立てて、**GitHub Issueとしてレビュー起票**する(まだ投稿はしない)
-4. 起票されたIssueを見て、内容が問題なければ `approved` ラベルを付ける。問題があればIssueをCloseする(却下)。この操作はスマホのGitHubアプリからでも可能
-5. `approved` ラベルが付いた瞬間、`publish-approved.yml`(クラウド/GitHub Actions)が自動で起動し、Threads API (Graph API, OAuth2) で実際に投稿する。**この部分はPCの状態に関係なく動く**
+4. 起票されたIssueを見て、内容が問題なければ **`approve` とコメント**する。問題があればIssueをCloseする(却下)。この操作はスマホのGitHubアプリからでも可能
+5. `approve` とコメントされた瞬間、`publish-approved.yml`(クラウド/GitHub Actions)が自動で起動し、Threads API (Graph API, OAuth2) で実際に投稿する。**この部分はPCの状態に関係なく動く**
 6. 投稿済み商品は `data/posted_items.json` に記録し、14日間は再投稿しない
 7. 投稿履歴は `data/post_log.json` にも記録され、`index.html`(GitHub Pagesダッシュボード)から確認できる
 8. Threadsのアクセストークン(60日間有効)は、別のワークフローで毎週自動更新される
@@ -105,19 +105,7 @@ GitHub Secretsに登録した値(APIキー等)は、リポジトリがPublicで�
 既にPrivateで作成済みの場合は、GitHubの該当リポジトリで
 Settings → General → 一番下の「Danger Zone」→ **Change visibility → Make public** から変更する。
 
-### 7. レビュー用ラベルの作成
-
-投稿レビューの仕組みは GitHub Issue のラベルで動くため、以下の2つのラベルを事前に作成しておく
-(未作成だとIssue起票時にエラーになる)。
-
-```bash
-gh label create pending-review --color FFA500 --description "レビュー待ちの投稿案"
-gh label create approved --color 22C55E --description "承認済み。このラベルを付けると自動で公開される"
-```
-
-GitHub Web UIから作る場合は、リポジトリの Issues タブ → Labels → New label でも同じことができる。
-
-### 8. GitHub Pagesの有効化(ダッシュボード)
+### 7. GitHub Pagesの有効化(ダッシュボード)
 
 1. リポジトリの Settings → 左メニューの **Pages**
 2. 「Build and deployment」の Source を **Deploy from a branch** に設定
@@ -125,7 +113,7 @@ GitHub Web UIから作る場合は、リポジトリの Issues タブ → Labels
 4. 数分待つと `https://<あなたのユーザー名>.github.io/rakuten-sns-bot/` でダッシュボードが公開される
 5. 以後、投稿が公開されるたびに `data/post_log.json` が自動更新され、ダッシュボードにも反映される
 
-### 9. GitHub Secretsの登録
+### 8. GitHub Secretsの登録
 
 リポジトリの Settings → Secrets and variables → Actions → New repository secret で以下を登録:
 
@@ -138,7 +126,7 @@ GitHub Web UIから作る場合は、リポジトリの Issues タブ → Labels
 | `THREADS_ACCESS_TOKEN` | 手順3で取得した長期アクセストークン |
 | `GH_PAT` | 手順5で発行したPersonal Access Token |
 
-### 10. ローカルPCの設定(投稿案を作る処理)
+### 9. ローカルPCの設定(投稿案を作る処理)
 
 **1回だけ**、PowerShellで以下を実行し、ユーザー環境変数を設定する(値は各自のものに置き換える)。
 `setx` はターミナルを再起動しないと反映されないので、設定後は一度PowerShellを閉じて開き直すこと。
@@ -165,7 +153,7 @@ setx GITHUB_REPOSITORY "takumi3334/rakuten-sns-bot"
 
 これで、PCが起動しているあいだ、1時間おきに投稿案の作成をチェックするようになる。
 
-### 11. 動作確認
+### 10. 動作確認
 
 1. GitHubリポジトリの Actions タブ → **"Plan Daily Posting Schedule"** → "Run workflow" で手動実行し、`data/schedule.json` が作られるか確認する
 2. PowerShellで手動実行して確認する
@@ -177,12 +165,12 @@ setx GITHUB_REPOSITORY "takumi3334/rakuten-sns-bot"
 
    - 予定時刻をまだ過ぎていない場合は何も起きない(GitHub上で`data/schedule.json`の時刻を手で過去の時刻に書き換えてpushしてから再実行すると確認しやすい)
 3. Issues タブに **「投稿レビュー: ...」** というIssueが作られているか確認する
-4. 内容を確認し、問題なければそのIssueに **`approved` ラベル**を付ける
+4. 内容を確認し、問題なければそのIssueに **`approve` とコメント**する
 5. 自動で **"Publish Approved Post"** ワークフローが起動し、Threadsに投稿される。Issueには自動でコメントが付き、Closeされる
 6. ダッシュボード(`https://<あなたのユーザー名>.github.io/rakuten-sns-bot/`)を開いて投稿履歴が表示されるか確認する
 
 以降は `plan-schedule.yml`(クラウド、毎日0:05 JST)と、ローカルPCのタスクスケジューラ(1時間おき)が
-投稿案を作り、`approved` ラベルを付けるだけで公開される運用になる。
+投稿案を作り、`approve` とコメントするだけで公開される運用になる。
 また `.github/workflows/refresh-token.yml` が毎週月曜に自動でアクセストークンを更新する。
 
 ## カスタマイズ

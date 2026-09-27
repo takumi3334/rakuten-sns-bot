@@ -1,8 +1,8 @@
 name: Publish Approved Post
 
 on:
-  issues:
-    types: [labeled]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: write
@@ -10,7 +10,10 @@ permissions:
 
 jobs:
   publish:
-    if: github.event.label.name == 'approved'
+    if: >
+      github.event.issue.pull_request == null &&
+      github.event.issue.state == 'open' &&
+      contains(fromJSON('["approve", "Approve", "APPROVE"]'), github.event.comment.body)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
