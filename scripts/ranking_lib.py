@@ -73,7 +73,11 @@ def fetch_ranking(genre_id):
     }
     if RAKUTEN_AFFILIATE_ID:
         params["affiliateId"] = RAKUTEN_AFFILIATE_ID
-    resp = requests.get(RANKING_ENDPOINT, params=params, timeout=15)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    }
+    resp = requests.get(RANKING_ENDPOINT, params=params, headers=headers, timeout=15)
     resp.raise_for_status()
     return [entry["Item"] for entry in resp.json().get("Items", [])]
 
