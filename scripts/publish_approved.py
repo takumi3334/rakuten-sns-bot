@@ -34,12 +34,27 @@ def extract_payload(body):
     return json.loads(match.group(1))
 
 
-def post_to_threads(text):
+def post_to_threads(text, image_url=None):
+    data = {"text": text, "access_token": THREADS_ACCESS_TOKEN}
+    if image_url:
+        data["media_type"] = "IMAGE"
+        data["image_url"] = image_url
+    else:
+        data["media_type"] = "TEXT"
+
     create_resp = requests.post(
         f"{THREADS_API_BASE}/{THREADS_USER_ID}/threads",
-        data={"media_type": "TEXT", "text": text, "access_token": THREADS_ACCESS_TOKEN},
+        data=data,
         timeout=15,
     )
+    if create_resp.status_code >= 300 and image_url:
+        # 画像URLが取得できない/無効な場合はテキストのみにフォールバック
+        data = {"media_type": "TEXT", "text": text, "access_token": THREADS_ACCESS_TOKEN}
+        create_resp = requests.post(
+            f"{THREADS_API_BASE}/{THREADS_USER_ID}/threads",
+            data=data,
+            timeout=15,
+        )
     if create_resp.status_code >= 300:
         raise RuntimeError(f"Threads container creation failed: {create_resp.status_code} {create_resp.text}")
     creation_id = create_resp.json()["id"]
@@ -78,7 +93,7 @@ def main():
     payload = extract_payload(body)
     items = payload["items"]
 
-    result = post_to_threads(payload["text"])
+    result = post_to_threads(payload["text"], payload.get("imageUrl"))
     permalink = fetch_permalink(result["id"])
 
     state = load_state()

@@ -79,6 +79,8 @@ def fetch_ranking(genre_id):
     items = [entry["Item"] for entry in resp.json().get("Items", [])]
     for item in items:
         item["itemPrice"] = int(item["itemPrice"])
+    # 楽天APIはrank(1位が最良)が降順(30位→1位)で返ってくるため、昇順に並べ替える
+    items.sort(key=lambda item: item.get("rank", 0))
     return items
 
 
@@ -97,18 +99,36 @@ def pick_items(state):
     return items[:TOP_N]
 
 
+def format_item_line(medal, item):
+    headline = (item.get("catchcopy") or "").strip() or item["itemName"]
+    if len(headline) > 38:
+        headline = headline[:38] + "…"
+
+    price = f"{item['itemPrice']:,}円"
+
+    review_count = item.get("reviewCount") or 0
+    try:
+        review_average = float(item.get("reviewAverage") or 0)
+    except ValueError:
+        review_average = 0
+    review_line = ""
+    if review_count and review_average > 0:
+        review_line = f"⭐{review_average}({review_count:,}件)\n"
+
+    sale_badge = "⏰タイムセール中\n" if (item.get("startTime") or item.get("endTime")) else ""
+
+    url = item.get("affiliateUrl") or item["itemUrl"]
+
+    return f"{medal} {headline}\n{sale_badge}💰{price}\n{review_line}🔗{url}\n"
+
+
 def build_post_text(items):
     intro = random.choice(INTRO_PHRASES)
     medals = ["🥇", "🥈", "🥉"]
     lines = [PR_PREFIX + intro, ""]
 
     for medal, item in zip(medals, items):
-        name = item["itemName"]
-        if len(name) > 40:
-            name = name[:40] + "…"
-        price = f"{item['itemPrice']:,}円"
-        url = item.get("affiliateUrl") or item["itemUrl"]
-        lines.append(f"{medal} {name}\n💰{price}\n🔗{url}\n")
+        lines.append(format_item_line(medal, item))
 
     lines.append(HASHTAGS)
     text = "\n".join(lines)

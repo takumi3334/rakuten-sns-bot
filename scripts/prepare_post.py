@@ -50,9 +50,17 @@ def due_slot(schedule):
     return None
 
 
+def top_image_url(item):
+    urls = item.get("mediumImageUrls") or []
+    if urls and urls[0].get("imageUrl"):
+        return urls[0]["imageUrl"]
+    return None
+
+
 def create_review_issue(text, items):
     payload = {
         "text": text,
+        "imageUrl": top_image_url(items[0]) if items else None,
         "items": [
             {
                 "itemCode": item["itemCode"],
