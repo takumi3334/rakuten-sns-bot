@@ -84,6 +84,21 @@ def fetch_ranking(genre_id):
     return items
 
 
+def shorten_url(url):
+    """is.gd(無料・APIキー不要)でURLを短縮する。失敗時は元のURLをそのまま返す。"""
+    try:
+        resp = requests.get(
+            "https://is.gd/create.php",
+            params={"format": "simple", "url": url},
+            timeout=5,
+        )
+        if resp.status_code == 200 and resp.text.startswith("http"):
+            return resp.text.strip()
+    except requests.RequestException:
+        pass
+    return url
+
+
 def pick_items(state):
     genre_order = GENRE_IDS[:]
     random.shuffle(genre_order)
@@ -92,47 +107,69 @@ def pick_items(state):
         items = fetch_ranking(genre_id)
         fresh = [item for item in items if item["itemCode"] not in state]
         if len(fresh) >= TOP_N:
-            return fresh[:TOP_N]
+            picked = fresh[:TOP_N]
+            break
+    else:
+        # 全ジャンルでクールダウン中の商品しかない場合は、最初のジャンルの上位を使う
+        picked = fetch_ranking(genre_order[0])[:TOP_N]
 
-    # 全ジャンルでクールダウン中の商品しかない場合は、最初のジャンルの上位を使う
-    items = fetch_ranking(genre_order[0])
-    return items[:TOP_N]
+    for item in picked:
+        item["displayUrl"] = shorten_url(item.get("affiliateUrl") or item["itemUrl"])
+    return picked
 
 
-def format_item_line(medal, item):
-    headline = (item.get("catchcopy") or "").strip() or item["itemName"]
-    if len(headline) > 38:
-        headline = headline[:38] + "…"
+def format_item_line(medal, item, include_hook=True, include_review=True):
+    name = item["itemName"]
+    if len(name) > 26:
+        name = name[:26] + "…"
+
+    # catchcopyは商品固有のフックのこともあれば、ショップ全体の定型文
+    # (例:「楽天ブックスならいつでも送料無料」)のこともある。
+    # 商品名と重複していない場合だけ、補足として添える。
+    hook_line = ""
+    if include_hook:
+        catchcopy = (item.get("catchcopy") or "").strip()
+        if catchcopy and catchcopy not in name:
+            short_catchcopy = catchcopy if len(catchcopy) <= 28 else catchcopy[:28] + "…"
+            hook_line = f"📣{short_catchcopy}\n"
 
     price = f"{item['itemPrice']:,}円"
 
-    review_count = item.get("reviewCount") or 0
-    try:
-        review_average = float(item.get("reviewAverage") or 0)
-    except ValueError:
-        review_average = 0
     review_line = ""
-    if review_count and review_average > 0:
-        review_line = f"⭐{review_average}({review_count:,}件)\n"
+    if include_review:
+        review_count = item.get("reviewCount") or 0
+        try:
+            review_average = float(item.get("reviewAverage") or 0)
+        except ValueError:
+            review_average = 0
+        if review_count and review_average > 0:
+            review_line = f"⭐{review_average}({review_count:,}件)\n"
 
     sale_badge = "⏰タイムセール中\n" if (item.get("startTime") or item.get("endTime")) else ""
 
-    url = item.get("affiliateUrl") or item["itemUrl"]
+    url = item.get("displayUrl") or item.get("affiliateUrl") or item["itemUrl"]
 
-    return f"{medal} {headline}\n{sale_badge}💰{price}\n{review_line}🔗{url}\n"
+    return f"{medal} {name}\n{hook_line}{sale_badge}💰{price}\n{review_line}🔗{url}\n"
 
 
 def build_post_text(items):
     intro = random.choice(INTRO_PHRASES)
     medals = ["🥇", "🥈", "🥉"]
-    lines = [PR_PREFIX + intro, ""]
 
-    for medal, item in zip(medals, items):
-        lines.append(format_item_line(medal, item))
+    # アフィリエイトURLが長いと500字を超えることがある。
+    # URLの途中で切れて壊れたリンクにならないよう、情報量→商品数の順に段階的に削る。
+    # 1) catchcopyを削る 2) レビュー情報も削る 3) それでも収まらなければ商品数を減らす
+    for n in range(len(items), 0, -1):
+        for include_hook, include_review in [(True, True), (False, True), (False, False)]:
+            item_lines = [
+                format_item_line(medal, item, include_hook, include_review)
+                for medal, item in zip(medals[:n], items[:n])
+            ]
+            text = "\n".join([PR_PREFIX + intro, ""] + item_lines + [HASHTAGS])
+            if len(text) <= POST_TEXT_LIMIT:
+                return text
 
-    lines.append(HASHTAGS)
-    text = "\n".join(lines)
-    return text[:POST_TEXT_LIMIT]
+    return "\n".join([PR_PREFIX + intro, "", HASHTAGS])[:POST_TEXT_LIMIT]
 
 
 def append_log(items, permalink):
