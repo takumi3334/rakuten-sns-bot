@@ -3,6 +3,7 @@ import json
 import random
 import time
 from datetime import datetime, timedelta, timezone
+from urllib.parse import parse_qs, urlparse
 
 import requests
 
@@ -266,6 +267,13 @@ def build_room_comment(item):
     return f"{comment}\n{ROOM_HASHTAGS}"
 
 
+def plain_item_url(item):
+    """アフィリエイト用の長いURLから、通常の商品ページURL(pc=の中身)を取り出す。無ければそのまま返す。"""
+    url = item["itemUrl"]
+    pc = parse_qs(urlparse(url).query).get("pc")
+    return pc[0] if pc else url
+
+
 def build_room_section(items):
     blocks = []
     for item in items:
@@ -274,7 +282,7 @@ def build_room_section(items):
             name = name[:40] + "…"
         blocks.append(
             f"### 🏆{rank_label(item)} {name}\n"
-            f"商品ページ(ROOMでコレクトする): {item['itemUrl']}\n\n"
+            f"商品ページ(ROOMでコレクトする): {plain_item_url(item)}\n\n"
             f"```\n{build_room_comment(item)}\n```"
         )
     return "\n\n".join(blocks)
