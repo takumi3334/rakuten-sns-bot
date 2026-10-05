@@ -27,8 +27,9 @@ GENRES = {
 }
 GENRE_IDS = list(GENRES)
 
-# 報酬率がこの値(%)未満の商品は除外する(例: 楽天ブックスは2%)。0にすると無効
-MIN_AFFILIATE_RATE = 4.0
+# 報酬率がこの値(%)未満の商品は除外する。0にすると無効
+# 実測(2026-10-06): キッズ・ベビーは4%、他の4ジャンルは3%。楽天ブックス・ゲーム・PCなどは2%
+MIN_AFFILIATE_RATE = 3.0
 # 除外するショップコード(書籍・CD予約など。楽天ブックス = "book")
 EXCLUDE_SHOP_CODES = {"book"}
 
@@ -79,7 +80,7 @@ def prune_state(state):
     return pruned
 
 
-def fetch_ranking(genre_id):
+def fetch_ranking(genre_id, apply_filter=True):
     rakuten_affiliate_id = os.environ.get("RAKUTEN_AFFILIATE_ID", "")
     params = {
         "format": "json",
@@ -114,7 +115,8 @@ def fetch_ranking(genre_id):
         item["itemPrice"] = int(item["itemPrice"])
         item["genreId"] = genre_id
         item["genreName"] = GENRES.get(genre_id, "")
-    items = [item for item in items if is_eligible(item)]
+    if apply_filter:
+        items = [item for item in items if is_eligible(item)]
     # 楽天APIはrank(1位が最良)が降順(30位→1位)で返ってくるため、昇順に並べ替える
     items.sort(key=lambda item: item.get("rank", 0))
     return items
@@ -132,14 +134,15 @@ def is_eligible(item):
 
 
 def shorten_url(url):
-    """is.gd(無料・APIキー不要)でURLを短縮する。失敗時は元のURLをそのまま返す。"""
+    """TinyURL(無料・APIキー不要)でURLを短縮する。失敗時は元のURLをそのまま返す。
+    (is.gdは楽天のアフィリエイトURLを受け付けなかったため、TinyURLを使う)"""
     try:
         resp = requests.get(
-            "https://is.gd/create.php",
-            params={"format": "simple", "url": url},
-            timeout=5,
+            "https://tinyurl.com/api-create.php",
+            params={"url": url},
+            timeout=8,
         )
-        if resp.status_code == 200 and resp.text.startswith("http"):
+        if resp.status_code == 200 and resp.text.startswith("https://tinyurl.com/"):
             return resp.text.strip()
     except requests.RequestException:
         pass
