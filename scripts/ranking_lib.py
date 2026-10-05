@@ -33,13 +33,13 @@ EXCLUDE_SHOP_CODES = {"book"}
 
 RANKING_ENDPOINT = "https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/Ranking/20220601"
 
-# {genre} はジャンル名に置き換わる
+# 1回の投稿には3つの別ジャンルの商品を載せるため、導入文はジャンルを特定しない表現にする
 INTRO_PHRASES = [
-    "楽天{genre}ランキング速報🔥",
-    "{genre}で今売れてるのはコレ！📈",
-    "{genre}の人気商品はこちら✨",
-    "見逃し注意の{genre}売れ筋👀",
-    "今日の楽天{genre}TOP3🛒",
+    "楽天ジャンル別ランキング速報🔥",
+    "ジャンル別で今売れてるのはコレ！📈",
+    "楽天民が選んだ人気商品✨",
+    "見逃し注意の売れ筋ランキング👀",
+    "今日の楽天ジャンル別TOP🛒",
 ]
 
 # 景品表示法(ステルスマーケティング規制)対応。アフィリエイトリンクを含む投稿には
@@ -93,6 +93,7 @@ def fetch_ranking(genre_id):
     items = [entry["Item"] for entry in resp.json().get("Items", [])]
     for item in items:
         item["itemPrice"] = int(item["itemPrice"])
+        item["genreId"] = genre_id
         item["genreName"] = GENRES.get(genre_id, "")
     items = [item for item in items if is_eligible(item)]
     # 楽天APIはrank(1位が最良)が降順(30位→1位)で返ってくるため、昇順に並べ替える
@@ -127,25 +128,43 @@ def shorten_url(url):
 
 
 def pick_items(state):
+    """TOP_N件を、すべて別ジャンルから選ぶ(各ジャンルで最上位の未投稿商品を1件ずつ)。"""
     genre_order = GENRE_IDS[:]
     random.shuffle(genre_order)
 
+    rankings = {}
+    picked = []
     for genre_id in genre_order:
-        items = fetch_ranking(genre_id)
-        fresh = [item for item in items if item["itemCode"] not in state]
-        if len(fresh) >= TOP_N:
-            picked = fresh[:TOP_N]
+        rankings[genre_id] = fetch_ranking(genre_id)
+        fresh = [item for item in rankings[genre_id] if item["itemCode"] not in state]
+        if fresh:
+            picked.append(fresh[0])
+        if len(picked) == TOP_N:
             break
-    else:
-        # 全ジャンルでクールダウン中の商品しかない場合は、最初のジャンルの上位を使う
-        picked = fetch_ranking(genre_order[0])[:TOP_N]
+
+    if len(picked) < TOP_N:
+        # 未投稿の商品が足りないジャンルは、クールダウン中の商品で補う(同じジャンルは重ねない)
+        used_genres = {item["genreId"] for item in picked}
+        for genre_id in genre_order:
+            if len(picked) == TOP_N:
+                break
+            if genre_id not in used_genres and rankings.get(genre_id):
+                picked.append(rankings[genre_id][0])
+
+    # 各商品のジャンル内順位が高い順に並べる
+    picked.sort(key=lambda item: item.get("rank", 0))
 
     for item in picked:
         item["displayUrl"] = shorten_url(item.get("affiliateUrl") or item["itemUrl"])
     return picked
 
 
-def format_item_line(medal, item, include_hook=True, include_review=True):
+def rank_label(item):
+    """「ジャンル名+そのジャンルでの順位」。ジャンルごとに順位が違うため、誤認を避けて明記する。"""
+    return f"{item.get('genreName') or ''}{item.get('rank', '')}位"
+
+
+def format_item_line(item, include_hook=True, include_review=True):
     name = item["itemName"]
     if len(name) > 26:
         name = name[:26] + "…"
@@ -176,13 +195,11 @@ def format_item_line(medal, item, include_hook=True, include_review=True):
 
     url = item.get("displayUrl") or item.get("affiliateUrl") or item["itemUrl"]
 
-    return f"{medal} {name}\n{hook_line}{sale_badge}💰{price}\n{review_line}🔗{url}\n"
+    return f"🏆{rank_label(item)} {name}\n{hook_line}{sale_badge}💰{price}\n{review_line}🔗{url}\n"
 
 
 def build_post_text(items):
-    genre = (items[0].get("genreName") or "") if items else ""
-    intro = random.choice(INTRO_PHRASES).format(genre=genre)
-    medals = ["🥇", "🥈", "🥉"]
+    intro = random.choice(INTRO_PHRASES)
 
     # アフィリエイトURLが長いと500字を超えることがある。
     # URLの途中で切れて壊れたリンクにならないよう、情報量→商品数の順に段階的に削る。
@@ -190,8 +207,8 @@ def build_post_text(items):
     for n in range(len(items), 0, -1):
         for include_hook, include_review in [(True, True), (False, True), (False, False)]:
             item_lines = [
-                format_item_line(medal, item, include_hook, include_review)
-                for medal, item in zip(medals[:n], items[:n])
+                format_item_line(item, include_hook, include_review)
+                for item in items[:n]
             ]
             text = "\n".join([PR_PREFIX + intro, ""] + item_lines + [HASHTAGS])
             if len(text) <= POST_TEXT_LIMIT:
@@ -228,14 +245,13 @@ def build_room_comment(item):
 
 
 def build_room_section(items):
-    medals = ["🥇", "🥈", "🥉"]
     blocks = []
-    for medal, item in zip(medals, items):
+    for item in items:
         name = item["itemName"]
         if len(name) > 40:
             name = name[:40] + "…"
         blocks.append(
-            f"### {medal} {name}\n"
+            f"### 🏆{rank_label(item)} {name}\n"
             f"商品ページ(ROOMでコレクトする): {item['itemUrl']}\n\n"
             f"```\n{build_room_comment(item)}\n```"
         )
