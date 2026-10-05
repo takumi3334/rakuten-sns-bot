@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
-from ranking_lib import load_state, prune_state, pick_items, build_post_text
+from ranking_lib import load_state, prune_state, pick_items, build_post_text, build_room_section
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 SCHEDULE_PATH = os.path.join(DATA_DIR, "schedule.json")
@@ -76,6 +76,9 @@ def create_review_issue(text, items):
         "```\n" + text + "\n```\n\n"
         "承認する場合は、このIssueに **`approve`** とコメントしてください(自動で公開されます)。\n"
         "却下する場合は、このIssueをCloseしてください。\n\n"
+        "## 楽天ROOM用(手動投稿)\n\n"
+        "ROOMは自動投稿しません。商品ページを開いてコレクトし、下のコメントをコピーして貼り付けてください。\n\n"
+        + build_room_section(items) + "\n\n"
         f"<!-- POST_DATA: {json.dumps(payload, ensure_ascii=False)} -->"
     )
 

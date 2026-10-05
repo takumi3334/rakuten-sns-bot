@@ -172,6 +172,47 @@ def build_post_text(items):
     return "\n".join([PR_PREFIX + intro, "", HASHTAGS])[:POST_TEXT_LIMIT]
 
 
+# 楽天ROOM用(手動投稿)。事実に基づく表現のみ使い、「使ってみた」等の体験談は書かない。
+# アフィリエイト投稿のため#PRを付与する。文面は自由に編集してよい。
+ROOM_HASHTAGS = "#PR #楽天ROOM"
+ROOM_COMMENT_TEMPLATES = [
+    "楽天ランキング{rank}位の人気アイテム。{price}円{review}",
+    "今売れている{rank}位！{price}円{review}",
+    "ランキング{rank}位に入っていた注目商品。{price}円{review}",
+]
+
+
+def build_room_comment(item):
+    review_count = item.get("reviewCount") or 0
+    try:
+        review_average = float(item.get("reviewAverage") or 0)
+    except ValueError:
+        review_average = 0
+    review = f"、レビュー⭐{review_average}({review_count:,}件)" if review_count and review_average > 0 else ""
+
+    comment = random.choice(ROOM_COMMENT_TEMPLATES).format(
+        rank=item.get("rank", "?"),
+        price=f"{item['itemPrice']:,}",
+        review=review,
+    )
+    return f"{comment}\n{ROOM_HASHTAGS}"
+
+
+def build_room_section(items):
+    medals = ["🥇", "🥈", "🥉"]
+    blocks = []
+    for medal, item in zip(medals, items):
+        name = item["itemName"]
+        if len(name) > 40:
+            name = name[:40] + "…"
+        blocks.append(
+            f"### {medal} {name}\n"
+            f"商品ページ(ROOMでコレクトする): {item['itemUrl']}\n\n"
+            f"```\n{build_room_comment(item)}\n```"
+        )
+    return "\n\n".join(blocks)
+
+
 def append_log(items, permalink):
     log = []
     if os.path.exists(LOG_PATH):
