@@ -13,19 +13,32 @@ COOLDOWN_DAYS = 14
 TOP_N = 3
 POST_TEXT_LIMIT = 500
 
-# genreId=0 は楽天市場の総合ランキング。特定ジャンルに絞りたい場合は
-# ジャンル検索API (https://webservice.rakuten.co.jp/api/ichibagenresearch/) で
-# 調べたジャンルIDをここに追加する。
-GENRE_IDS = [0]
+# 投稿対象のジャンル {ジャンルID: 投稿文に使うジャンル名}。実行のたびにランダムに1つ選ぶ。
+# 楽天ROOMで売れやすい系統(生活雑貨・キッズベビー)に絞っている(調査日: 2026-10-06)。
+# 総合ランキングにしたい場合は {0: "楽天"} にする。IDは楽天のジャンル検索API
+# (https://webservice.rakuten.co.jp/api/ichibagenresearch/) で確認できる。
+GENRES = {
+    100804: "インテリア・収納",
+    558944: "キッチン用品",
+    215783: "日用品雑貨",
+    100533: "キッズ・ベビー",
+}
+GENRE_IDS = list(GENRES)
+
+# 報酬率がこの値(%)未満の商品は除外する(例: 楽天ブックスは2%)。0にすると無効
+MIN_AFFILIATE_RATE = 4.0
+# 除外するショップコード(書籍・CD予約など。楽天ブックス = "book")
+EXCLUDE_SHOP_CODES = {"book"}
 
 RANKING_ENDPOINT = "https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/Ranking/20220601"
 
+# {genre} はジャンル名に置き換わる
 INTRO_PHRASES = [
-    "楽天ランキング速報🔥",
-    "今売れてるのはコレ！📈",
-    "楽天民が選んだ人気商品✨",
-    "見逃し注意の売れ筋ランキング👀",
-    "今日の楽天TOP3はこちら🛒",
+    "楽天{genre}ランキング速報🔥",
+    "{genre}で今売れてるのはコレ！📈",
+    "{genre}の人気商品はこちら✨",
+    "見逃し注意の{genre}売れ筋👀",
+    "今日の楽天{genre}TOP3🛒",
 ]
 
 # 景品表示法(ステルスマーケティング規制)対応。アフィリエイトリンクを含む投稿には
@@ -79,9 +92,22 @@ def fetch_ranking(genre_id):
     items = [entry["Item"] for entry in resp.json().get("Items", [])]
     for item in items:
         item["itemPrice"] = int(item["itemPrice"])
+        item["genreName"] = GENRES.get(genre_id, "")
+    items = [item for item in items if is_eligible(item)]
     # 楽天APIはrank(1位が最良)が降順(30位→1位)で返ってくるため、昇順に並べ替える
     items.sort(key=lambda item: item.get("rank", 0))
     return items
+
+
+def is_eligible(item):
+    """報酬率が低い商品・除外ショップの商品を取り除く"""
+    if item.get("shopCode") in EXCLUDE_SHOP_CODES:
+        return False
+    try:
+        rate = float(item.get("affiliateRate") or 0)
+    except ValueError:
+        rate = 0
+    return rate >= MIN_AFFILIATE_RATE
 
 
 def shorten_url(url):
@@ -153,7 +179,8 @@ def format_item_line(medal, item, include_hook=True, include_review=True):
 
 
 def build_post_text(items):
-    intro = random.choice(INTRO_PHRASES)
+    genre = (items[0].get("genreName") or "") if items else ""
+    intro = random.choice(INTRO_PHRASES).format(genre=genre)
     medals = ["🥇", "🥈", "🥉"]
 
     # アフィリエイトURLが長いと500字を超えることがある。
@@ -176,9 +203,9 @@ def build_post_text(items):
 # アフィリエイト投稿のため#PRを付与する。文面は自由に編集してよい。
 ROOM_HASHTAGS = "#PR #楽天ROOM"
 ROOM_COMMENT_TEMPLATES = [
-    "楽天ランキング{rank}位の人気アイテム。{price}円{review}",
-    "今売れている{rank}位！{price}円{review}",
-    "ランキング{rank}位に入っていた注目商品。{price}円{review}",
+    "楽天{genre}ランキング{rank}位の人気アイテム。{price}円{review}",
+    "{genre}で今売れている{rank}位！{price}円{review}",
+    "{genre}ランキング{rank}位に入っていた注目商品。{price}円{review}",
 ]
 
 
@@ -191,6 +218,7 @@ def build_room_comment(item):
     review = f"、レビュー⭐{review_average}({review_count:,}件)" if review_count and review_average > 0 else ""
 
     comment = random.choice(ROOM_COMMENT_TEMPLATES).format(
+        genre=item.get("genreName") or "",
         rank=item.get("rank", "?"),
         price=f"{item['itemPrice']:,}",
         review=review,

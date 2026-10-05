@@ -177,7 +177,8 @@ setx GITHUB_REPOSITORY "takumi3334/rakuten-sns-bot"
 
 - **1日の投稿上限・時間帯**: `scripts/plan_schedule.py` の `DAILY_POST_CAP`(デフォルト3件)、`WINDOW_START`/`WINDOW_END`(デフォルト9:00〜22:00)を変更
 - **投稿案のチェック頻度**: タスクスケジューラのトリガー設定(繰り返し間隔)を変更
-- **ジャンルを絞る**: `scripts/ranking_lib.py` の `GENRE_IDS` に、[楽天ジャンル検索API](https://webservice.rakuten.co.jp/api/ichibagenresearch/)で調べたジャンルIDを追加(例: 家電、美容など)
+- **投稿ジャンルの変更**: `scripts/ranking_lib.py` の `GENRES`(`{ジャンルID: 投稿文に使う名前}`)を編集。IDは[楽天ジャンル検索API](https://webservice.rakuten.co.jp/api/ichibagenresearch/)で確認。実行のたびにランダムで1ジャンルが選ばれる
+- **報酬率・ショップの除外**: `MIN_AFFILIATE_RATE`(既定4.0%未満は除外)、`EXCLUDE_SHOP_CODES`(既定は楽天ブックス)を変更
 - **投稿文のトーン**: `scripts/ranking_lib.py` の `INTRO_PHRASES` のリストに好きな煽り文句を追加してバリエーションを増やす
 - **クールダウン期間**: `scripts/ranking_lib.py` の `COOLDOWN_DAYS`(デフォルト14日)を変更
 - **PR表記**: `scripts/ranking_lib.py` の `PR_PREFIX` / `HASHTAGS` を変更(削除は非推奨。景品表示法対応のため)
