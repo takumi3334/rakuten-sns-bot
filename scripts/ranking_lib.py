@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import time
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -32,6 +33,11 @@ MIN_AFFILIATE_RATE = 4.0
 EXCLUDE_SHOP_CODES = {"book"}
 
 RANKING_ENDPOINT = "https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/Ranking/20220601"
+
+# 楽天APIは連続アクセスに制限がある(目安: 1秒に1回)。呼び出しの最小間隔(秒)
+RAKUTEN_MIN_INTERVAL = 1.2
+RAKUTEN_MAX_RETRIES = 4
+_last_api_call = 0.0
 
 # 1回の投稿には3つの別ジャンルの商品を載せるため、導入文はジャンルを特定しない表現にする
 INTRO_PHRASES = [
@@ -88,8 +94,21 @@ def fetch_ranking(genre_id):
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                       "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
     }
-    resp = requests.get(RANKING_ENDPOINT, params=params, headers=headers, timeout=15)
-    resp.raise_for_status()
+    global _last_api_call
+    resp = None
+    for attempt in range(RAKUTEN_MAX_RETRIES):
+        wait = RAKUTEN_MIN_INTERVAL - (time.monotonic() - _last_api_call)
+        if wait > 0:
+            time.sleep(wait)
+        resp = requests.get(RANKING_ENDPOINT, params=params, headers=headers, timeout=15)
+        _last_api_call = time.monotonic()
+        if resp.status_code != 429:
+            break
+        time.sleep(2 * (attempt + 1))  # 制限に当たったら少し待って再試行
+
+    if resp.status_code >= 400:
+        # URLにApp ID・Access Keyが含まれるため、例外メッセージにURLを出さない
+        raise RuntimeError(f"楽天ランキングAPIエラー: HTTP {resp.status_code} (genreId={genre_id})")
     items = [entry["Item"] for entry in resp.json().get("Items", [])]
     for item in items:
         item["itemPrice"] = int(item["itemPrice"])
