@@ -129,6 +129,21 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .post-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin-bottom: 10px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .post-metrics b {
+    margin-left: 4px;
+    color: var(--text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
   .empty {
     text-align: center;
     color: var(--text-muted);
@@ -166,6 +181,10 @@
       <div class="stat-label">紹介した商品数</div>
       <div class="stat-value" id="stat-items">–</div>
     </div>
+    <div class="stat-card">
+      <div class="stat-label">総閲覧数</div>
+      <div class="stat-value" id="stat-views">–</div>
+    </div>
   </div>
 
   <div class="section-title">最近の投稿</div>
@@ -193,6 +212,13 @@ async function loadDashboard() {
     document.getElementById("stat-today").textContent = today;
     document.getElementById("stat-items").textContent = totalItems;
 
+    // 閲覧数は、インサイトを取得できた投稿がある場合のみ表示する
+    const withInsights = log.filter(p => p.insights);
+    if (withInsights.length > 0) {
+      const totalViews = withInsights.reduce((sum, p) => sum + (p.insights.views || 0), 0);
+      document.getElementById("stat-views").textContent = totalViews.toLocaleString();
+    }
+
     if (total === 0) {
       listEl.innerHTML = '<div class="empty">まだ投稿履歴がありません。最初の自動投稿が実行されるとここに表示されます。</div>';
       return;
@@ -204,6 +230,18 @@ async function loadDashboard() {
     updatedEl.textContent = "";
     listEl.innerHTML = '<div class="error">データの読み込みに失敗しました: ' + escapeHtml(err.message) + '</div>';
   }
+}
+
+const METRIC_LABELS = { views: "閲覧", likes: "いいね", replies: "返信", reposts: "リポスト", quotes: "引用" };
+
+function renderMetrics(post) {
+  if (post.insights) {
+    const parts = Object.keys(METRIC_LABELS)
+      .filter(key => key in post.insights)
+      .map(key => '<span>' + METRIC_LABELS[key] + '<b>' + post.insights[key].toLocaleString() + '</b></span>');
+    return parts.length ? '<div class="post-metrics">' + parts.join("") + '</div>' : "";
+  }
+  return post.mediaId ? '<div class="post-metrics">集計待ち(毎日21時に更新)</div>' : "";
 }
 
 function renderPost(post) {
@@ -222,6 +260,7 @@ function renderPost(post) {
   return (
     '<div class="post-card">' +
       '<div class="post-meta"><span>' + dateStr + '</span>' + linkHtml + '</div>' +
+      renderMetrics(post) +
       itemsHtml +
     '</div>'
   );

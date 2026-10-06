@@ -288,7 +288,7 @@ def build_room_section(items):
     return "\n\n".join(blocks)
 
 
-def append_log(items, permalink):
+def append_log(items, permalink, media_id=None):
     log = []
     if os.path.exists(LOG_PATH):
         with open(LOG_PATH, "r", encoding="utf-8") as f:
@@ -297,6 +297,7 @@ def append_log(items, permalink):
     log.append({
         "postedAt": datetime.now(timezone.utc).isoformat(),
         "permalink": permalink,
+        "mediaId": media_id,
         "items": [
             {
                 "name": item["itemName"],

@@ -111,7 +111,7 @@ def main():
         }
         for item in items
     ]
-    append_log(log_items, permalink)
+    append_log(log_items, permalink, result["id"])
 
     comment = "投稿しました。" + (f"\n{permalink}" if permalink else "")
     finish_issue(comment)
