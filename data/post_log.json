@@ -137,13 +137,13 @@
       }
     ],
     "insights": {
-      "views": 23,
+      "views": 24,
       "likes": 0,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-09T17:35:51.237127+00:00"
+    "insightsUpdatedAt": "2026-10-10T16:26:07.979819+00:00"
   },
   {
     "postedAt": "2026-10-07T23:15:37.884229+00:00",
@@ -173,7 +173,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-09T17:35:51.385031+00:00"
+    "insightsUpdatedAt": "2026-10-10T16:26:08.307200+00:00"
   },
   {
     "postedAt": "2026-10-08T12:24:12.998259+00:00",
@@ -197,13 +197,13 @@
       }
     ],
     "insights": {
-      "views": 21,
+      "views": 23,
       "likes": 0,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-09T17:35:51.523645+00:00"
+    "insightsUpdatedAt": "2026-10-10T16:26:08.701907+00:00"
   },
   {
     "postedAt": "2026-10-09T07:35:05.593311+00:00",
@@ -227,13 +227,13 @@
       }
     ],
     "insights": {
-      "views": 9,
+      "views": 14,
       "likes": 0,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-09T17:35:51.885083+00:00"
+    "insightsUpdatedAt": "2026-10-10T16:26:08.879899+00:00"
   },
   {
     "postedAt": "2026-10-09T23:49:20.417355+00:00",
@@ -255,7 +255,15 @@
         "price": 8959,
         "url": "https://hb.afl.rakuten.co.jp/hgc/g00pzd4n.qs6ukda8.g00pzd4n.qs6ul2f1/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fnetbaby%2F406536%2F&rafcid=wsc_i_ra_85544306-e87e-40aa-acbb-6053c88f15a8"
       }
-    ]
+    ],
+    "insights": {
+      "views": 21,
+      "likes": 0,
+      "replies": 0,
+      "reposts": 0,
+      "quotes": 0
+    },
+    "insightsUpdatedAt": "2026-10-10T16:26:09.092644+00:00"
   },
   {
     "postedAt": "2026-10-10T13:35:35.334192+00:00",
@@ -277,6 +285,14 @@
         "price": 6171,
         "url": "https://hb.afl.rakuten.co.jp/hgc/g00r136n.qs6uk9bd.g00r136n.qs6ul91a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2F4901301458117%2F&rafcid=wsc_i_ra_85544306-e87e-40aa-acbb-6053c88f15a8"
       }
-    ]
+    ],
+    "insights": {
+      "views": 10,
+      "likes": 1,
+      "replies": 0,
+      "reposts": 0,
+      "quotes": 0
+    },
+    "insightsUpdatedAt": "2026-10-10T16:26:09.294489+00:00"
   }
 ]
