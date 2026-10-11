@@ -143,7 +143,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-10T16:26:07.979819+00:00"
+    "insightsUpdatedAt": "2026-10-11T16:50:51.974335+00:00"
   },
   {
     "postedAt": "2026-10-07T23:15:37.884229+00:00",
@@ -173,7 +173,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-10T16:26:08.307200+00:00"
+    "insightsUpdatedAt": "2026-10-11T16:50:52.490070+00:00"
   },
   {
     "postedAt": "2026-10-08T12:24:12.998259+00:00",
@@ -197,13 +197,13 @@
       }
     ],
     "insights": {
-      "views": 23,
+      "views": 24,
       "likes": 0,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-10T16:26:08.701907+00:00"
+    "insightsUpdatedAt": "2026-10-11T16:50:53.023083+00:00"
   },
   {
     "postedAt": "2026-10-09T07:35:05.593311+00:00",
@@ -227,13 +227,13 @@
       }
     ],
     "insights": {
-      "views": 14,
+      "views": 15,
       "likes": 0,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-10T16:26:08.879899+00:00"
+    "insightsUpdatedAt": "2026-10-11T16:50:53.434276+00:00"
   },
   {
     "postedAt": "2026-10-09T23:49:20.417355+00:00",
@@ -257,13 +257,13 @@
       }
     ],
     "insights": {
-      "views": 21,
+      "views": 23,
       "likes": 0,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-10T16:26:09.092644+00:00"
+    "insightsUpdatedAt": "2026-10-11T16:50:53.786720+00:00"
   },
   {
     "postedAt": "2026-10-10T13:35:35.334192+00:00",
@@ -287,13 +287,13 @@
       }
     ],
     "insights": {
-      "views": 10,
+      "views": 12,
       "likes": 1,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-10T16:26:09.294489+00:00"
+    "insightsUpdatedAt": "2026-10-11T16:50:54.239448+00:00"
   },
   {
     "postedAt": "2026-10-11T03:12:37.253029+00:00",
@@ -315,6 +315,14 @@
         "price": 5990,
         "url": "https://hb.afl.rakuten.co.jp/hgc/g00qx1gn.qs6ukaa2.g00qx1gn.qs6ul4f6/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkurashi-zakka%2Fsrn-403-413%2F&rafcid=wsc_i_ra_85544306-e87e-40aa-acbb-6053c88f15a8"
       }
-    ]
+    ],
+    "insights": {
+      "views": 5,
+      "likes": 0,
+      "replies": 0,
+      "reposts": 0,
+      "quotes": 0
+    },
+    "insightsUpdatedAt": "2026-10-11T16:50:54.566833+00:00"
   }
 ]
