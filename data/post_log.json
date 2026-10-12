@@ -143,7 +143,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-11T16:50:51.974335+00:00"
+    "insightsUpdatedAt": "2026-10-12T20:28:37.519689+00:00"
   },
   {
     "postedAt": "2026-10-07T23:15:37.884229+00:00",
@@ -173,7 +173,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-11T16:50:52.490070+00:00"
+    "insightsUpdatedAt": "2026-10-12T20:28:37.835905+00:00"
   },
   {
     "postedAt": "2026-10-08T12:24:12.998259+00:00",
@@ -197,13 +197,13 @@
       }
     ],
     "insights": {
-      "views": 24,
+      "views": 25,
       "likes": 0,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-11T16:50:53.023083+00:00"
+    "insightsUpdatedAt": "2026-10-12T20:28:39.124702+00:00"
   },
   {
     "postedAt": "2026-10-09T07:35:05.593311+00:00",
@@ -227,13 +227,13 @@
       }
     ],
     "insights": {
-      "views": 15,
+      "views": 18,
       "likes": 0,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-11T16:50:53.434276+00:00"
+    "insightsUpdatedAt": "2026-10-12T20:28:39.496866+00:00"
   },
   {
     "postedAt": "2026-10-09T23:49:20.417355+00:00",
@@ -257,13 +257,13 @@
       }
     ],
     "insights": {
-      "views": 23,
+      "views": 42,
       "likes": 0,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-11T16:50:53.786720+00:00"
+    "insightsUpdatedAt": "2026-10-12T20:28:39.874211+00:00"
   },
   {
     "postedAt": "2026-10-10T13:35:35.334192+00:00",
@@ -293,7 +293,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-11T16:50:54.239448+00:00"
+    "insightsUpdatedAt": "2026-10-12T20:28:40.300793+00:00"
   },
   {
     "postedAt": "2026-10-11T03:12:37.253029+00:00",
@@ -323,7 +323,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-10-11T16:50:54.566833+00:00"
+    "insightsUpdatedAt": "2026-10-12T20:28:40.513099+00:00"
   },
   {
     "postedAt": "2026-10-12T14:48:09.973599+00:00",
@@ -345,7 +345,15 @@
         "price": 14999,
         "url": "https://hb.afl.rakuten.co.jp/hgc/g00pvv1n.qs6uk9fd.g00pvv1n.qs6ulce6/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbabytown%2Fhc-cc%2F&rafcid=wsc_i_ra_85544306-e87e-40aa-acbb-6053c88f15a8"
       }
-    ]
+    ],
+    "insights": {
+      "views": 1,
+      "likes": 0,
+      "replies": 0,
+      "reposts": 0,
+      "quotes": 0
+    },
+    "insightsUpdatedAt": "2026-10-12T20:28:40.792464+00:00"
   },
   {
     "postedAt": "2026-10-12T14:48:42.675922+00:00",
@@ -367,6 +375,14 @@
         "price": 4750,
         "url": "https://hb.afl.rakuten.co.jp/hgc/g00r7hcn.qs6uk297.g00r7hcn.qs6ul283/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcoming%2F170m-long6r-c1%2F&rafcid=wsc_i_ra_85544306-e87e-40aa-acbb-6053c88f15a8"
       }
-    ]
+    ],
+    "insights": {
+      "views": 2,
+      "likes": 0,
+      "replies": 0,
+      "reposts": 0,
+      "quotes": 0
+    },
+    "insightsUpdatedAt": "2026-10-12T20:28:41.119447+00:00"
   }
 ]
