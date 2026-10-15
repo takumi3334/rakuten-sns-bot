@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天ランキングbot ダッシュボード(ローカル専用)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card-bg: #ffffff;
+    --text: #1a1d23;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #bf0000;
+    --accent-soft: #fdecec;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1115;
+      --card-bg: #1a1d23;
+      --text: #e8e9ec;
+      --text-muted: #9aa0aa;
+      --border: #2a2e37;
+      --accent: #ff5c5c;
+      --accent-soft: #2a1414;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1115;
+    --card-bg: #1a1d23;
+    --text: #e8e9ec;
+    --text-muted: #9aa0aa;
+    --border: #2a2e37;
+    --accent: #ff5c5c;
+    --accent-soft: #2a1414;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    padding: 16px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 12px 0 24px;
+    flex-wrap: wrap;
+  }
+  h1 { font-size: 1.3rem; margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .local-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+  .updated { font-size: 0.8rem; color: var(--text-muted); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
+  .stat-value { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-note { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+
+  .section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--text-muted);
+  }
+  .section-note { font-size: 0.78rem; color: var(--text-muted); margin: -4px 0 12px; }
+
+  .month-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .month-tabs button {
+    font: inherit;
+    font-size: 0.82rem;
+    color: var(--text);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 14px;
+    cursor: pointer;
+  }
+  .month-tabs button[aria-pressed="true"] {
+    color: #fff;
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .month-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .table-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 16px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 4px; text-align: right; border-top: 1px dashed var(--border); }
+  th { font-weight: 500; color: var(--text-muted); font-size: 0.78rem; border-top: none; }
+  th:first-child, td:first-child { text-align: left; }
+  td.reward { color: var(--accent); font-weight: 600; }
+  th, td { white-space: nowrap; }
+  tr.total td { font-weight: 700; border-top: 2px solid var(--border); }
+  @media (max-width: 480px) {
+    .table-card { padding: 8px 10px; }
+    table { font-size: 0.78rem; }
+    th { font-size: 0.72rem; }
+    th, td { padding: 8px 2px; }
+  }
+  .table-note { font-size: 0.74rem; color: var(--text-muted); padding: 8px 4px 4px; }
+
+  .post-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .post-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .post-meta a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .post-meta a:hover { text-decoration: underline; }
+
+  .item-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-top: 1px dashed var(--border);
+    font-size: 0.88rem;
+  }
+  .item-row:first-of-type { border-top: none; }
+  .item-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .item-price {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .post-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin-bottom: 10px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .post-metrics b {
+    margin-left: 4px;
+    color: var(--text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 32px 16px;
+    font-size: 0.9rem;
+  }
+
+  .error {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🛒 楽天ランキングbot <span class="local-badge">ローカル専用・非公開</span></h1>
+    <span class="updated" id="updated">読み込み中…</span>
+  </header>
+
+  <div class="section-title">楽天アフィリエイト実績</div>
+  <div class="month-tabs" id="mode-tabs"></div>
+  <div class="month-tabs" id="month-tabs"></div>
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">成果報酬</div>
+      <div class="stat-value" id="aff-rewards">–</div>
+      <div class="stat-note">未確定を含む</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">売上金額</div>
+      <div class="stat-value" id="aff-amount">–</div>
+      <div class="stat-note">未確定を含む</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">クリック数</div>
+      <div class="stat-value" id="aff-clicks">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">売上件数</div>
+      <div class="stat-value" id="aff-sales">–</div>
+      <div class="stat-note">未確定を含む</div>
+    </div>
+  </div>
+  <div class="table-card" id="aff-table"></div>
+
+  <div class="section-title">投稿の実績</div>
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">総投稿数</div>
+      <div class="stat-value" id="stat-total">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">直近24時間</div>
+      <div class="stat-value" id="stat-today">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">紹介した商品数</div>
+      <div class="stat-value" id="stat-items">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">総閲覧数</div>
+      <div class="stat-value" id="stat-views">–</div>
+    </div>
+  </div>
+
+  <div class="section-title">最近の投稿</div>
+  <div id="post-list"></div>
+</div>
+
+<script>
+// 投稿履歴は公開版と同じデータ(data/post_log.json)。最新にするには git pull する。
+const POST_LOG_URL = "../data/post_log.json";
+// 楽天アフィリエイトのCSVは local/affiliate/YYYY-MM.csv に置く(Gitには上がらない)
+const AFFILIATE_DIR = "affiliate/";
+const YEARS_TO_TRY = 2; // 今年と昨年のCSVを探す
+
+async function loadDashboard() {
+  const updatedEl = document.getElementById("updated");
+  const listEl = document.getElementById("post-list");
+  updatedEl.textContent = "最終確認: " + new Date().toLocaleString("ja-JP");
+
+  loadAffiliate();
+
+  try {
+    const res = await fetch(POST_LOG_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const log = await res.json();
+
+    const total = log.length;
+    const totalItems = log.reduce((sum, p) => sum + (p.items ? p.items.length : 0), 0);
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const today = log.filter(p => new Date(p.postedAt).getTime() > dayAgo).length;
+
+    document.getElementById("stat-total").textContent = total;
+    document.getElementById("stat-today").textContent = today;
+    document.getElementById("stat-items").textContent = totalItems;
+
+    const withInsights = log.filter(p => p.insights);
+    if (withInsights.length > 0) {
+      const totalViews = withInsights.reduce((sum, p) => sum + (p.insights.views || 0), 0);
+      document.getElementById("stat-views").textContent = totalViews.toLocaleString();
+    }
+
+    if (total === 0) {
+      listEl.innerHTML = '<div class="empty">まだ投稿履歴がありません。</div>';
+      return;
+    }
+    listEl.innerHTML = log.slice().reverse().slice(0, 30).map(renderPost).join("");
+  } catch (err) {
+    listEl.innerHTML = '<div class="error">投稿履歴の読み込みに失敗しました: ' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+/* ---------- 楽天アフィリエイト実績 ---------- */
+
+// 探すCSVの「年-月」の一覧(新しい月が先)
+function candidateMonthKeys() {
+  const now = new Date();
+  const keys = [];
+  for (let y = now.getFullYear(); y > now.getFullYear() - YEARS_TO_TRY; y--) {
+    const lastMonth = y === now.getFullYear() ? now.getMonth() + 1 : 12;
+    for (let m = lastMonth; m >= 1; m--) keys.push(y + "-" + String(m).padStart(2, "0"));
+  }
+  return keys;
+}
+
+// CSVは「タイトル行・空行・日本語の列名・英語の列名・日別データ」の順。日付で始まる行だけを使う。
+function parseAffiliateCsv(text) {
+  return text.replace(/^﻿/, "").split(/\r?\n/)
+    .filter(line => /^\d{4}-\d{2}-\d{2},/.test(line))
+    .map(line => {
+      const [date, rewards, clicks, sales, amount] = line.split(",");
+      return { date, rewards: Number(rewards), clicks: Number(clicks), sales: Number(sales), amount: Number(amount) };
+    });
+}
+
+let affiliateMonths = {};       // { "2026-10": [日別の行, ...], ... }(新しい月が先)
+let affiliateMode = "month";    // "month"(月別) | "year"(通年)
+let selectedMonth = null;
+let selectedYear = null;
+
+async function loadAffiliate() {
+  const results = await Promise.all(candidateMonthKeys().map(async key => {
+    try {
+      const res = await fetch(AFFILIATE_DIR + key + ".csv", { cache: "no-store" });
+      return res.ok ? [key, parseAffiliateCsv(await res.text())] : null;
+    } catch (e) {
+      return null; // ファイルが無い月は表示しない
+    }
+  }));
+  affiliateMonths = Object.fromEntries(results.filter(Boolean));
+
+  if (Object.keys(affiliateMonths).length === 0) {
+    document.getElementById("aff-table").innerHTML = '<div class="empty">実績のCSVがありません。楽天アフィリエイトの「期間別・日別」レポートからCSVをダウンロードし、<br><b>local/affiliate/2026-10.csv</b> のように「年-月.csv」の名前で保存してください。</div>';
+    return;
+  }
+  renderModeTabs();
+  showAffiliate();
+}
+
+function setTabs(el, tabs, selected, onSelect) {
+  el.innerHTML = tabs.map(([key, label]) =>
+    '<button type="button" data-key="' + key + '" aria-pressed="' + (key === selected) + '">' + label + '</button>'
+  ).join("");
+  el.querySelectorAll("button").forEach(b => b.addEventListener("click", () => onSelect(b.dataset.key)));
+}
+
+function renderModeTabs() {
+  setTabs(document.getElementById("mode-tabs"), [["month", "月別"], ["year", "通年"]], affiliateMode, mode => {
+    affiliateMode = mode;
+    renderModeTabs();
+    showAffiliate();
+  });
+}
+
+function showAffiliate() {
+  const tabsEl = document.getElementById("month-tabs");
+  const monthKeys = Object.keys(affiliateMonths);
+
+  if (affiliateMode === "month") {
+    if (!affiliateMonths[selectedMonth]) selectedMonth = monthKeys[0];
+    setTabs(tabsEl, monthKeys.map(k => [k, k.replace("-", "年") + "月"]), selectedMonth, key => {
+      selectedMonth = key;
+      showAffiliate();
+    });
+    renderMonth(affiliateMonths[selectedMonth]);
+    return;
+  }
+
+  const years = [...new Set(monthKeys.map(k => k.slice(0, 4)))];
+  if (selectedYear !== "all" && !years.includes(selectedYear)) selectedYear = years[0];
+  const tabs = years.map(y => [y, y + "年"]);
+  if (years.length > 1) tabs.push(["all", "全期間"]);
+  setTabs(tabsEl, tabs, selectedYear, key => {
+    selectedYear = key;
+    showAffiliate();
+  });
+  renderYear(selectedYear);
+}
+
+function sumRows(rows) {
+  return rows.reduce((s, r) => ({
+    rewards: s.rewards + r.rewards,
+    clicks: s.clicks + r.clicks,
+    sales: s.sales + r.sales,
+    amount: s.amount + r.amount,
+  }), { rewards: 0, clicks: 0, sales: 0, amount: 0 });
+}
+
+function setAffiliateCards(s) {
+  document.getElementById("aff-rewards").textContent = "¥" + s.rewards.toLocaleString();
+  document.getElementById("aff-amount").textContent = "¥" + s.amount.toLocaleString();
+  document.getElementById("aff-clicks").textContent = s.clicks.toLocaleString();
+  document.getElementById("aff-sales").textContent = s.sales.toLocaleString();
+}
+
+function affiliateRowHtml(label, s, className) {
+  return '<tr' + (className ? ' class="' + className + '"' : '') + '><td>' + label + '</td>' +
+    '<td class="reward">¥' + s.rewards.toLocaleString() + '</td>' +
+    '<td>' + s.clicks.toLocaleString() + '</td>' +
+    '<td>' + s.sales.toLocaleString() + '</td>' +
+    '<td>¥' + s.amount.toLocaleString() + '</td></tr>';
+}
+
+function affiliateTableHtml(firstColumn, bodyHtml, note) {
+  return '<table><thead><tr><th>' + firstColumn + '</th><th>成果報酬</th><th>クリック</th><th>売上件数</th><th>売上金額</th></tr></thead><tbody>' +
+    bodyHtml + '</tbody></table>' + (note ? '<div class="table-note">' + note + '</div>' : "");
+}
+
+// 月別: その月の合計と、日別の表
+function renderMonth(rows) {
+  setAffiliateCards(sumRows(rows));
+  const body = rows.slice().reverse()
+    .map(r => affiliateRowHtml(r.date.slice(5).replace("-", "/"), r))
+    .join("");
+  document.getElementById("aff-table").innerHTML = affiliateTableHtml("日付", body, "");
+}
+
+// 通年: 年(または全期間)の合計と、月ごとの表
+function renderYear(year) {
+  const keys = Object.keys(affiliateMonths).filter(k => year === "all" || k.startsWith(year));
+  const total = sumRows(keys.flatMap(k => affiliateMonths[k]));
+  setAffiliateCards(total);
+  const body = keys.map(k => affiliateRowHtml(k.replace("-", "/"), sumRows(affiliateMonths[k]))).join("") +
+    affiliateRowHtml("合計", total, "total");
+  document.getElementById("aff-table").innerHTML =
+    affiliateTableHtml("月", body, "※ CSVを保存した月だけを集計しています(保存していない月は含まれません)");
+}
+
+/* ---------- 投稿 ---------- */
+
+const METRIC_LABELS = { views: "閲覧", likes: "いいね", replies: "返信", reposts: "リポスト", quotes: "引用" };
+
+function renderMetrics(post) {
+  if (post.insights) {
+    const parts = Object.keys(METRIC_LABELS)
+      .filter(key => key in post.insights)
+      .map(key => '<span>' + METRIC_LABELS[key] + '<b>' + post.insights[key].toLocaleString() + '</b></span>');
+    return parts.length ? '<div class="post-metrics">' + parts.join("") + '</div>' : "";
+  }
+  return post.mediaId ? '<div class="post-metrics">集計待ち(毎日21時に更新)</div>' : "";
+}
+
+function renderPost(post) {
+  const date = new Date(post.postedAt);
+  const dateStr = date.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const linkHtml = post.permalink
+    ? '<a href="' + escapeHtml(post.permalink) + '" target="_blank" rel="noopener">投稿を見る →</a>'
+    : "";
+  const itemsHtml = (post.items || []).map(item =>
+    '<div class="item-row">' +
+      '<span class="item-name">' + escapeHtml(item.name) + '</span>' +
+      '<span class="item-price">' + item.price.toLocaleString() + '円</span>' +
+    '</div>'
+  ).join("");
+
+  return (
+    '<div class="post-card">' +
+      '<div class="post-meta"><span>' + dateStr + '</span>' + linkHtml + '</div>' +
+      renderMetrics(post) +
+      itemsHtml +
+    '</div>'
+  );
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

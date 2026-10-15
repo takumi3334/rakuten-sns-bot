@@ -1,3 +1,6 @@
 .env
 __pycache__/
 *.pyc
+
+# 楽天アフィリエイトの実績(報酬額など)。公開されないよう、Gitには絶対に上げない
+local/affiliate/
