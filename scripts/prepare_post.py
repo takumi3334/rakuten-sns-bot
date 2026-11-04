@@ -67,6 +67,8 @@ def create_review_issue(text, items):
                 "itemName": item["itemName"],
                 "itemPrice": item["itemPrice"],
                 "url": item.get("affiliateUrl") or item["itemUrl"],
+                "genreName": item.get("genreName"),
+                "rank": item.get("rank"),
             }
             for item in items
         ],

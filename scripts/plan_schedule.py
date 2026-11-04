@@ -9,25 +9,24 @@ SCHEDULE_PATH = os.path.join(DATA_DIR, "schedule.json")
 
 JST = ZoneInfo("Asia/Tokyo")
 
-# 1日あたりの投稿上限。増減させたい場合はここを変更する。
-DAILY_POST_CAP = 3
-
-# 投稿を行う時間帯(この範囲内でランダムな時刻が選ばれる)
-WINDOW_START = dtime(9, 0)
-WINDOW_END = dtime(22, 0)
+# 投稿案を作る時間帯(JST)。1つの時間帯につき1枠で、その範囲内でランダムな時刻が選ばれる。
+# 枠の数 = 1日の投稿上限。増減させたい場合は、時間帯を足す・消す。
+# 1枠目を朝(9〜11時)に固定しているのは、投稿履歴の分析(2026-11-04)で朝の閲覧数が高めだったための実験。
+# ※ 実際にThreadsに公開されるのは、投稿案を承認(approve)した時刻。朝に承認すると朝の投稿になる。
+SLOT_WINDOWS = [
+    (dtime(9, 0), dtime(11, 0)),
+    (dtime(11, 0), dtime(16, 30)),
+    (dtime(16, 30), dtime(22, 0)),
+]
 
 
 def generate_times(today):
-    start_dt = datetime.combine(today, WINDOW_START, tzinfo=JST)
-    end_dt = datetime.combine(today, WINDOW_END, tzinfo=JST)
-    total_minutes = int((end_dt - start_dt).total_seconds() // 60)
-    slot_minutes = total_minutes // DAILY_POST_CAP
-
     times = []
-    for i in range(DAILY_POST_CAP):
-        slot_start = start_dt + timedelta(minutes=slot_minutes * i)
-        offset = random.randint(0, slot_minutes - 1)
-        chosen = slot_start + timedelta(minutes=offset)
+    for start, end in SLOT_WINDOWS:
+        start_dt = datetime.combine(today, start, tzinfo=JST)
+        end_dt = datetime.combine(today, end, tzinfo=JST)
+        window_minutes = int((end_dt - start_dt).total_seconds() // 60)
+        chosen = start_dt + timedelta(minutes=random.randint(0, window_minutes - 1))
         times.append(chosen.strftime("%H:%M"))
     return times
 

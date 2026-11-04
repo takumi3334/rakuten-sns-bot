@@ -108,6 +108,8 @@ def main():
             "itemPrice": item["itemPrice"],
             "affiliateUrl": item["url"],
             "itemUrl": item["url"],
+            "genreName": item.get("genreName"),
+            "rank": item.get("rank"),
         }
         for item in items
     ]

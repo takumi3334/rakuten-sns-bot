@@ -13,7 +13,9 @@ import ranking_lib as r
 
 def main():
     print(f"条件: 報酬率{r.MIN_AFFILIATE_RATE}%以上 / 除外ショップ: {sorted(r.EXCLUDE_SHOP_CODES)}")
-    for genre_id, name in r.GENRES.items():
+    for genre_id, name in r.ALL_GENRES.items():
+        if genre_id in r.TREND_GENRES:
+            name = "[話題枠] " + name
         try:
             items = r.fetch_ranking(genre_id, apply_filter=False)
         except RuntimeError as e:

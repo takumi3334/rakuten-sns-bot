@@ -28,6 +28,18 @@ GENRES = {
 }
 GENRE_IDS = list(GENRES)
 
+# 「話題の商品」枠のジャンル。GENRESとは別のジャンルにして、「3商品はすべて別ジャンル」を保つ。
+# 投稿履歴の分析(2026-11-04)で、ちいかわ・ボンボンドロップシールなど話題の商品の閲覧数が高かったための実験。
+# 空にする({})か TREND_SLOTS = 0 にすると、この枠は使わない。
+TREND_GENRES = {
+    566382: "おもちゃ",
+    101164: "ホビー",
+    216131: "バッグ・小物",
+    100939: "美容・コスメ",
+}
+TREND_SLOTS = 1  # 1回の投稿で、話題枠から選ぶ商品の数(TOP_N以下)
+ALL_GENRES = {**GENRES, **TREND_GENRES}
+
 # 報酬率がこの値(%)未満の商品は除外する。0にすると無効
 # 実測(2026-10-06): キッズ・ベビーは4%、他の4ジャンルは3%。楽天ブックス・ゲーム・PCなどは2%
 MIN_AFFILIATE_RATE = 3.0
@@ -116,7 +128,7 @@ def fetch_ranking(genre_id, apply_filter=True):
     for item in items:
         item["itemPrice"] = int(item["itemPrice"])
         item["genreId"] = genre_id
-        item["genreName"] = GENRES.get(genre_id, "")
+        item["genreName"] = ALL_GENRES.get(genre_id, "")
     if apply_filter:
         items = [item for item in items if is_eligible(item)]
     # 楽天APIはrank(1位が最良)が降順(30位→1位)で返ってくるため、昇順に並べ替える
@@ -163,32 +175,54 @@ def shorten_url(url):
     return url
 
 
-def pick_items(state):
-    """TOP_N件を、すべて別ジャンルから選ぶ(各ジャンルで最上位の未投稿商品を1件ずつ)。"""
-    genre_order = GENRE_IDS[:]
-    random.shuffle(genre_order)
+def pick_from_genres(genre_ids, count, state, rankings, skip_errors=False):
+    """genre_idsをランダムな順に見て、各ジャンルで最上位の未投稿商品を1件ずつ、最大count件選ぶ。
+    未投稿の商品が足りなければ、クールダウン中の商品で補う(同じジャンルは重ねない)。
+    skip_errors=Trueなら、取得に失敗したジャンルは飛ばす(話題枠が全体を止めないため)。"""
+    order = list(genre_ids)
+    random.shuffle(order)
 
-    rankings = {}
     picked = []
-    for genre_id in genre_order:
-        rankings[genre_id] = fetch_ranking(genre_id)
+    for genre_id in order:
+        if len(picked) == count:
+            break
+        if genre_id not in rankings:
+            try:
+                rankings[genre_id] = fetch_ranking(genre_id)
+            except RuntimeError as e:
+                if not skip_errors:
+                    raise
+                print(f"話題枠のジャンル{genre_id}の取得に失敗したため飛ばします: {e}")
+                rankings[genre_id] = []
         fresh = [item for item in rankings[genre_id] if item["itemCode"] not in state]
         if fresh:
             picked.append(fresh[0])
-        if len(picked) == TOP_N:
-            break
 
-    if len(picked) < TOP_N:
-        # 未投稿の商品が足りないジャンルは、クールダウン中の商品で補う(同じジャンルは重ねない)
-        used_genres = {item["genreId"] for item in picked}
-        for genre_id in genre_order:
-            if len(picked) == TOP_N:
+    if len(picked) < count:
+        used = {item["genreId"] for item in picked}
+        for genre_id in order:
+            if len(picked) == count:
                 break
-            if genre_id not in used_genres and rankings.get(genre_id):
+            if genre_id not in used and rankings.get(genre_id):
                 picked.append(rankings[genre_id][0])
+    return picked
 
-    # 各商品のジャンル内順位が高い順に並べる
-    picked.sort(key=lambda item: item.get("rank", 0))
+
+def pick_items(state):
+    """TOP_N件を、すべて別ジャンルから選ぶ。TREND_SLOTS件は話題枠(TREND_GENRES)、残りはGENRESから。
+    話題枠の商品を先頭に置く。"""
+    rankings = {}
+    trend_count = min(TREND_SLOTS, TOP_N) if TREND_GENRES else 0
+
+    trend = pick_from_genres(TREND_GENRES, trend_count, state, rankings, skip_errors=True)
+    core_genres = [g for g in GENRE_IDS if g not in {item["genreId"] for item in trend}]
+    core = pick_from_genres(core_genres, TOP_N - len(trend), state, rankings)
+
+    # 話題枠の商品が取れなかった場合も、GENRESの別ジャンルで3件に満たす(上でTOP_N - len(trend)件を選択済み)
+    # 各グループの中は、ジャンル内順位が高い順に並べる
+    trend.sort(key=lambda item: item.get("rank", 0))
+    core.sort(key=lambda item: item.get("rank", 0))
+    picked = trend + core
 
     for item in picked:
         item["displayUrl"] = shorten_url(item.get("affiliateUrl") or item["itemUrl"])
@@ -316,6 +350,8 @@ def append_log(items, permalink, media_id=None):
                 "name": item["itemName"],
                 "price": item["itemPrice"],
                 "url": item.get("affiliateUrl") or item["itemUrl"],
+                "genre": item.get("genreName"),
+                "rank": item.get("rank"),
             }
             for item in items
         ],
