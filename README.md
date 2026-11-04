@@ -76,6 +76,9 @@ python scripts/get_initial_token.py "<控えた認可コード>"
    - App IDはUUID形式(例: `85544306-e87e-40aa-acbb-6053c88f15a8`)
    - Access Keyも同じアプリ管理画面に表示されている
 3. 既にお持ちの楽天アフィリエイトIDを控える(アフィリエイトIDは開発者につき1つ。全アプリで共通)
+4. アプリ設定の **「許可されたIPアドレス」** に、投稿案を作るPCのグローバルIPを登録する(1行に1つ。複数登録可。`112.70.74.0/24` のようなCIDR表記の範囲指定も可)
+   - 自分のPCのIPは `py -c "import requests; print(requests.get('https://api.ipify.org').text)"` で確認できる
+   - 登録されていないIPからのアクセスは `CLIENT_IP_NOT_ALLOWED`(HTTP 403)で拒否される(GitHub ActionsやCloudflareが使えないのも同じ理由)
 
 ### 5. GitHub Personal Access Tokenの作成
 
@@ -209,3 +212,38 @@ python scripts\prepare_post.py
 - 「投稿案を作る」処理はPCが起動している時間帯だけ動く。長期間PCを起動しないと、その間は新しい投稿案が作られない(承認済みの投稿の公開自体はクラウドで動き続ける)
 - レビューIssueを放置して却下も承認もしないと、その回の投稿は行われないまま残り続ける。定期的にIssues一覧を確認すること
 - `【PR】`表記・`#PR`ハッシュタグは景品表示法(ステルスマーケティング規制)対応の一般的なプラクティスとして組み込んでいるが、最終的な法令適合性の判断は必要に応じて専門家に確認すること
+
+## トラブルシューティング
+
+### 投稿案(レビューIssue)が作られなくなった
+
+1. タスクスケジューラの状態を確認する(PowerShell)
+
+   ```powershell
+   Get-ScheduledTaskInfo -TaskName "rakuten-prepare-post" | Select-Object LastRunTime, LastTaskResult, NextRunTime
+   ```
+
+   `LastTaskResult` が `0` 以外なら、Pythonが失敗している。`0` でも、`data/schedule.json` の今日の枠の `done` が空のままなら、PCがオフだったか、タスクが動いていない
+2. 手動で実行して、エラーを見る(PowerShell)
+
+   ```powershell
+   cd "C:\Users\takum\Desktop\開発アプリ\開発アプリ\rakuten-sns-bot"
+   powershell -ExecutionPolicy Bypass -File scripts\run_local_prepare.ps1
+   ```
+
+3. エラーの意味
+
+| エラー | 原因と対処 |
+|---|---|
+| `HTTP 403 ... CLIENT_IP_NOT_ALLOWED` | PCのIPが変わった(回線・Wi-Fi・テザリング・VPNなど)。下の「楽天のIP許可」で新しいIPを追加する |
+| `HTTP 429` | 楽天APIの連続アクセス制限。自動で再試行される。続く場合は少し待つ |
+| `GITHUB_TOKEN` などの `KeyError` | 環境変数が未設定。「9. ローカルPCの設定」の `setx` をやり直し、PowerShellを開き直す |
+| GitHubへの403(Resource not accessible) | `GITHUB_TOKEN`(PAT)の権限・有効期限を確認する |
+
+### 楽天のIP許可を更新する
+
+1. 現在のIPを確認する: `py -c "import requests; print(requests.get('https://api.ipify.org').text)"`
+2. `https://webservice.rakuten.co.jp/app/list` にログイン →「編集」→ **許可されたIPアドレス** に、新しいIPを**1行追加**して保存(元のIPは残してよい)
+3. 手動実行(上の手順2)で、投稿案が作られることを確認する
+
+※ 2026年11月に、IPの変更で約2週間、投稿案が作られなかった。実行結果が「0(正常)」のまま失敗を隠していたため、`run_local_prepare.ps1` は失敗時に0以外で終了するよう修正済み
