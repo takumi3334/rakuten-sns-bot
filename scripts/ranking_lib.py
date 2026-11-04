@@ -109,8 +109,9 @@ def fetch_ranking(genre_id, apply_filter=True):
         time.sleep(2 * (attempt + 1))  # 制限に当たったら少し待って再試行
 
     if resp.status_code >= 400:
-        # URLにApp ID・Access Keyが含まれるため、例外メッセージにURLを出さない
-        raise RuntimeError(f"楽天ランキングAPIエラー: HTTP {resp.status_code} (genreId={genre_id})")
+        # URLにApp ID・Access Keyが含まれるため、例外メッセージにURLは出さず、楽天の理由だけを添える
+        reason = rakuten_error_reason(resp)
+        raise RuntimeError(f"楽天ランキングAPIエラー: HTTP {resp.status_code} (genreId={genre_id}) {reason}".strip())
     items = [entry["Item"] for entry in resp.json().get("Items", [])]
     for item in items:
         item["itemPrice"] = int(item["itemPrice"])
@@ -121,6 +122,18 @@ def fetch_ranking(genre_id, apply_filter=True):
     # 楽天APIはrank(1位が最良)が降順(30位→1位)で返ってくるため、昇順に並べ替える
     items.sort(key=lambda item: item.get("rank", 0))
     return items
+
+
+def rakuten_error_reason(resp):
+    """楽天のエラー応答から、理由の文言だけを取り出す(例: CLIENT_IP_NOT_ALLOWED)。キーなどは含めない。"""
+    try:
+        body = resp.json()
+    except ValueError:
+        return ""
+    errors = body.get("errors")
+    if isinstance(errors, dict):
+        return str(errors.get("errorMessage", ""))
+    return " ".join(str(body.get(key, "")) for key in ("error", "error_description")).strip()
 
 
 def is_eligible(item):

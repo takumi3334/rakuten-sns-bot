@@ -17,6 +17,8 @@ Set-Location $RepoDir
 git pull --quiet
 
 py scripts\prepare_post.py
+# 失敗したときは、タスクスケジューラの「前回の実行結果」に失敗(0以外)が出るよう、その結果を引き継いで終了する
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 git add data\schedule.json
 $staged = git diff --staged --name-only

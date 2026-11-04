@@ -6,6 +6,10 @@
 $root = Split-Path -Parent $PSScriptRoot
 $port = 8765
 
-Start-Process -FilePath "py" -ArgumentList "-m", "http.server", $port, "--bind", "127.0.0.1", "--directory", $root -WindowStyle Minimized
-Start-Sleep -Seconds 1
+# すでに起動中なら、サーバーは立て直さずブラウザだけ開く(ショートカットの連打対策)
+$running = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+if (-not $running) {
+    Start-Process -FilePath "py" -ArgumentList "-m", "http.server", $port, "--bind", "127.0.0.1", "--directory", $root -WindowStyle Minimized
+    Start-Sleep -Seconds 1
+}
 Start-Process "http://localhost:$port/local/dashboard.html"
