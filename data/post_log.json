@@ -773,7 +773,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-11-16T21:18:24.535575+00:00"
+    "insightsUpdatedAt": "2026-11-17T20:07:27.411798+00:00"
   },
   {
     "postedAt": "2026-10-19T09:08:36.006943+00:00",
@@ -803,7 +803,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-11-16T21:18:24.948143+00:00"
+    "insightsUpdatedAt": "2026-11-17T20:07:27.797866+00:00"
   },
   {
     "postedAt": "2026-10-20T05:07:43.208456+00:00",
@@ -833,7 +833,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-11-16T21:18:25.417697+00:00"
+    "insightsUpdatedAt": "2026-11-17T20:07:28.354872+00:00"
   },
   {
     "postedAt": "2026-10-21T10:28:03.769574+00:00",
@@ -863,7 +863,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-11-16T21:18:25.827057+00:00"
+    "insightsUpdatedAt": "2026-11-17T20:07:28.798743+00:00"
   },
   {
     "postedAt": "2026-10-21T10:28:40.148840+00:00",
@@ -887,13 +887,13 @@
       }
     ],
     "insights": {
-      "views": 20,
+      "views": 21,
       "likes": 0,
       "replies": 0,
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-11-16T21:18:26.167548+00:00"
+    "insightsUpdatedAt": "2026-11-17T20:07:29.384598+00:00"
   },
   {
     "postedAt": "2026-10-25T09:41:11.438680+00:00",
@@ -923,7 +923,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-11-16T21:18:26.502838+00:00"
+    "insightsUpdatedAt": "2026-11-17T20:07:29.927905+00:00"
   },
   {
     "postedAt": "2026-11-04T09:28:29.946841+00:00",
@@ -953,7 +953,7 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-11-16T21:18:27.004206+00:00"
+    "insightsUpdatedAt": "2026-11-17T20:07:30.363182+00:00"
   },
   {
     "postedAt": "2026-11-05T00:03:33.981146+00:00",
@@ -989,6 +989,6 @@
       "reposts": 0,
       "quotes": 0
     },
-    "insightsUpdatedAt": "2026-11-16T21:18:27.451666+00:00"
+    "insightsUpdatedAt": "2026-11-17T20:07:30.789153+00:00"
   }
 ]
